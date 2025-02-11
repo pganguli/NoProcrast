@@ -1,0 +1,44 @@
+<!doctype html>
+<html>
+  <head>
+    <title>NoProcrast Options</title>
+    <script src="options.js" defer></script>
+    <style>
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+        display: none; /* Hide table initially */
+      }
+      th,
+      td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+      }
+      th {
+        background-color: #f2f2f2;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Set Time Limits</h1>
+    <label for="site">Website:</label>
+    <input type="text" id="site" />
+    <label for="maxvisit">maxvisit</label>
+    <input type="number" id="maxvisit" min="1" />
+    <label for="minaway">minaway</label>
+    <input type="number" id="minaway" min="1" />
+    <button id="save">Save</button>
+    <table id="siteTable">
+      <thead>
+        <tr>
+          <th>site</th>
+          <th>maxvisit</th>
+          <th>minaway</th>
+        </tr>
+      </thead>
+      <tbody id="siteList"></tbody>
+    </table>
+  </body>
+</html>
