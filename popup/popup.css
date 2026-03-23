@@ -68,3 +68,42 @@ main {
 .site-status.active {
   color: #27ae60;
 }
+
+footer {
+  border-top: 1px solid #eee;
+  padding: 0.5rem 1rem 0.6rem;
+}
+
+#add-row {
+  display: flex;
+  gap: 0.4rem;
+}
+
+#new-domain {
+  flex: 1;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.85rem;
+}
+
+#add-btn {
+  background: #2980b9;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 0.3rem 0.7rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+#add-btn:hover {
+  background: #2471a3;
+}
+
+#add-error {
+  color: #c0392b;
+  font-size: 0.8rem;
+  margin: 0.25rem 0 0;
+  min-height: 1em;
+}

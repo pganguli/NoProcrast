@@ -226,6 +226,14 @@ function onMessage(message, _sender, sendResponse) {
       await saveConfig(message.config);
       return { ok: true };
     }
+    case 'addSite': {
+      const cfg = await getConfig();
+      if (!cfg.sites.some(s => s.domain === message.domain)) {
+        cfg.sites.push({ domain: message.domain });
+        await saveConfig(cfg);
+      }
+      return { ok: true };
+    }
     case 'removeSite': {
       const cfg = await getConfig();
       cfg.sites = cfg.sites.filter(s => s.domain !== message.domain);
