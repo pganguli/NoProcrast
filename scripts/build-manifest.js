@@ -14,14 +14,9 @@ if (browser !== 'chrome' && browser !== 'firefox') {
 const root = resolve(__dirname, '..');
 const base = JSON.parse(readFileSync(resolve(root, 'manifest.base.json'), 'utf8'));
 
-const background = {
-  service_worker: 'background/service-worker.js',
-  type: 'module',
-};
-
-if (browser === 'firefox') {
-  background.scripts = ['background/service-worker.js'];
-}
+const background = browser === 'firefox'
+  ? { scripts: ['background/service-worker.js'] }
+  : { service_worker: 'background/service-worker.js', type: 'module' };
 
 const manifest = Object.assign({}, base, { background });
 writeFileSync(resolve(root, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
