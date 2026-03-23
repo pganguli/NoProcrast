@@ -36,19 +36,32 @@ Browser support
   Chrome   120+   (MV3, service worker)
   Firefox  128+   (MV3, service worker)
 
-The codebase is identical across browsers. Only manifest.json differs:
-the Firefox manifest adds browser_specific_settings for the gecko engine.
-For Firefox, use the manifest on the `firefox` branch.
+The codebase is identical across browsers. The manifest includes
+browser_specific_settings for Firefox's gecko engine, which Chrome ignores,
+so the same manifest works for both browsers.
 
 Installation (unpacked)
 -----------------------
 
+Chrome:
+
 1. Clone the repository.
-2. Run: npm install
-3. Chrome: open chrome://extensions, enable Developer mode, click
-   "Load unpacked", select the repo directory.
-4. Firefox: open about:debugging, click "This Firefox", click
-   "Load Temporary Add-on", select manifest.json from the `firefox` branch.
+2. Run: `npm install`
+3. Open chrome://extensions and enable Developer mode (toggle, top-right).
+4. Click "Load unpacked" and select the repo directory.
+5. Pin the extension via the puzzle-piece icon in the toolbar.
+
+To reload after code changes: click the refresh icon on the extension card.
+
+Firefox:
+
+1. Clone the repository.
+2. Run: `npm install`
+3. Open about:debugging and click "This Firefox" in the left sidebar.
+4. Click "Load Temporary Add-on..." and select manifest.json from the repo.
+
+The extension stays loaded until Firefox restarts. To reload after code
+changes: click the Reload button next to the extension on about:debugging.
 
 Development
 -----------
