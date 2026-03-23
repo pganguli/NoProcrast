@@ -34,11 +34,12 @@ Browser support
 ---------------
 
   Chrome   120+   (MV3, service worker)
-  Firefox  128+   (MV3, service worker)
+  Firefox  128+   (MV3, background scripts)
 
-The codebase is identical across browsers. The manifest includes
-browser_specific_settings for Firefox's gecko engine, which Chrome ignores,
-so the same manifest works for both browsers.
+The extension source is identical across browsers. A build step generates a
+browser-specific manifest.json from manifest.base.json, which is the shared
+source of truth. Chrome requires a plain service worker entry; Firefox additionally
+needs a background.scripts fallback.
 
 Installation (unpacked)
 -----------------------
@@ -46,45 +47,53 @@ Installation (unpacked)
 Chrome:
 
 1. Clone the repository.
-2. Run: `npm install`
+2. Run: `npm install && npm run build:chrome`
 3. Open chrome://extensions and enable Developer mode (toggle, top-right).
 4. Click "Load unpacked" and select the repo directory.
 5. Pin the extension via the puzzle-piece icon in the toolbar.
 
-To reload after code changes: click the refresh icon on the extension card.
+To reload after code changes: run `npm run build:chrome`, then click the refresh
+icon on the extension card.
 
 Firefox:
 
 1. Clone the repository.
-2. Run: `npm install`
+2. Run: `npm install && npm run build:firefox`
 3. Open about:debugging and click "This Firefox" in the left sidebar.
 4. Click "Load Temporary Add-on..." and select manifest.json from the repo.
 
-The extension stays loaded until Firefox restarts. To reload after code
-changes: click the Reload button next to the extension on about:debugging.
+The extension stays loaded until Firefox restarts. To reload after code changes:
+run `npm run build:firefox`, then click the Reload button on about:debugging.
 
 Development
 -----------
 
-  `npm run lint`      Run ESLint (must pass with zero warnings or errors)
+  `npm run build:chrome`   Generate manifest.json for Chrome
+  `npm run build:firefox`  Generate manifest.json for Firefox
+  `npm run lint`           Run ESLint (must pass with zero warnings or errors)
+
+manifest.json is generated and gitignored. Always run the appropriate build
+command before loading or reloading the extension in a browser.
 
 File structure
 --------------
 
-  manifest.json
+  manifest.base.json        Shared manifest source (no background field)
+  scripts/
+    build-manifest.js       Generates manifest.json for a given browser
   shared/
-    browser-api.js    Unified api export (only file referencing chrome/browser)
-    storage.js        Storage read/write helpers
-    domain.js         domainMatches(), extractHostname()
-    limits.js         getEffectiveLimits()
+    browser-api.js          Unified api export (only file referencing chrome/browser)
+    storage.js              Storage read/write helpers
+    domain.js               domainMatches(), extractHostname()
+    limits.js               getEffectiveLimits()
   background/
-    service-worker.js All event listeners and timer logic
+    service-worker.js       All event listeners and timer logic
   pages/
-    blocked.*Block page with static countdown and override button
+    blocked.*               Block page with timed override
   popup/
-    popup.*           Read-only status view
+    popup.*                 Status view with quick add-site
   options/
-    options.*         Settings page
+    options.*               Settings page
 
 License
 -------
