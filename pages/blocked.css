@@ -49,6 +49,11 @@ p {
   font-size: 0.95rem;
 }
 
-.override-btn:hover {
+.override-btn:hover:not(:disabled) {
   background: #a93226;
+}
+
+.override-btn:disabled {
+  background: #bbb;
+  cursor: default;
 }

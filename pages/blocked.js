@@ -42,19 +42,36 @@ api.runtime.sendMessage({ type: 'getBlockStatus', domain }).then((response) => {
   document.getElementById('remaining-display').textContent = 'Could not load status.';
 });
 
-// Override button — two-click confirm
-let confirmPending = false;
+// Override button — first click starts a 30s countdown; second click (after countdown) confirms
+const OVERRIDE_DELAY = 30;
 const overrideBtn = document.getElementById('override-btn');
+overrideBtn.textContent = 'Override \u2014 I really need this';
+let confirmed = false;
 
 overrideBtn.addEventListener('click', () => {
-  if (!confirmPending) {
-    confirmPending = true;
-    overrideBtn.textContent = 'Are you sure? Click again to confirm.';
+  if (confirmed) {
+    api.runtime.sendMessage({ type: 'override', domain }).then(() => {
+      location.href = returnTo;
+    }).catch(err => {
+      console.error('Override failed:', err);
+    });
     return;
   }
-  api.runtime.sendMessage({ type: 'override', domain }).then(() => {
-    location.href = returnTo;
-  }).catch(err => {
-    console.error('Override failed:', err);
-  });
+
+  // First click: start countdown
+  overrideBtn.disabled = true;
+  let remaining = OVERRIDE_DELAY;
+  overrideBtn.textContent = 'Hold on\u2026 ' + remaining + 's';
+
+  const countdown = setInterval(() => {
+    remaining -= 1;
+    if (remaining <= 0) {
+      clearInterval(countdown);
+      confirmed = true;
+      overrideBtn.disabled = false;
+      overrideBtn.textContent = 'Click again to confirm override';
+    } else {
+      overrideBtn.textContent = 'Hold on\u2026 ' + remaining + 's';
+    }
+  }, 1000);
 });
