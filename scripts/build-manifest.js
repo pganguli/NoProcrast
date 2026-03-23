@@ -15,7 +15,7 @@ const root = resolve(__dirname, '..');
 const base = JSON.parse(readFileSync(resolve(root, 'manifest.base.json'), 'utf8'));
 
 const background = browser === 'firefox'
-  ? { scripts: ['background/service-worker.js'] }
+  ? { service_worker: 'background/service-worker.js', scripts: ['background/service-worker.js'], type: 'module' }
   : { service_worker: 'background/service-worker.js', type: 'module' };
 
 const manifest = Object.assign({}, base, { background });
