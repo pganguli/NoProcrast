@@ -42,8 +42,15 @@ jobs:
       - run: npm ci
         if: steps.node-modules-cache.outputs.cache-hit != 'true'
       - run: npm run build:${{ matrix.browser }}
-      - run: zip -r noprocrast-${{ matrix.browser }}.zip manifest.json shared/ background/ pages/ popup/ options/ icons/ LICENSE
       - uses: actions/upload-artifact@v6
         with:
           name: noprocrast-${{ matrix.browser }}
-          path: noprocrast-${{ matrix.browser }}.zip
+          path: |
+            manifest.json
+            shared/
+            background/
+            pages/
+            popup/
+            options/
+            icons/
+            LICENSE
