@@ -3,7 +3,7 @@
   "name": "Noprocrast",
   "version": "1.0.0",
   "description": "Limit time on distracting websites.",
-  "permissions": ["storage", "tabs", "alarms", "webNavigation"],
+  "permissions": ["storage", "alarms", "webNavigation"],
   "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "background/service-worker.js"
