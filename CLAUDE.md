@@ -2,7 +2,7 @@
 
 ## Overview
 
-A browser extension that limits time spent on a configurable list of websites, modeled on
+A browser extension that limits time spent on a configurable list of websites, modelled on
 Hacker News's "noprocrast" feature. Each blocked site allows a user-defined visit window
 (`maxvisit` minutes), followed by a mandatory cooldown (`minaway` minutes). A manual override
 is available but only resets the timer — it does not disable the system.
@@ -55,8 +55,12 @@ Example config:
 
 ### 1.3 Override Behavior
 
-- The block page includes an "Override" button requiring two clicks to confirm.
-- Clicking it resets `sessionUsed` to zero and clears `blockedAt`, granting one fresh
+- The block page includes an "Override" button with a 30-second timed confirmation.
+- First click disables the button and begins a countdown (`OVERRIDE_DELAY = 30` seconds),
+  displaying *"Hold on… Ns"*.
+- After the countdown completes, the button re-enables with the label *"Click again to
+  confirm override"*.
+- Second click resets `sessionUsed` to zero and clears `blockedAt`, granting one fresh
   `maxvisit` window.
 - After that window expires, the site blocks again normally.
 - No limit on override frequency.
@@ -69,8 +73,9 @@ When a site is blocked, the tab is redirected to `blocked.html` which shows:
 - A static message: *"You will be able to use this site again in X minutes."*
   (X is computed once at page load from `blockedAt + minaway - now`; it does not count
   down live.)
-- An "Override — I really need this" button requiring a second confirmation click.
-- On confirmation, the tab redirects back to the original URL.
+- An "Override — I really need this" button with the 30-second countdown flow described
+  in Section 1.3.
+- On second confirmation click, the tab redirects back to the original URL.
 
 ---
 
@@ -130,55 +135,69 @@ function domainMatches(hostname, configDomain):
 | Chrome  | 120+ | MV3, service worker background |
 | Firefox | 128+ | MV3, service worker background |
 
-### 3.2 Shared Codebase, Two Manifest Branches
+### 3.2 Shared Codebase, Single Branch, Build Step
 
-All application source is **identical** across browsers. The only file that differs between
-branches is `manifest.json`.
-
-#### Branch Strategy
+All application source lives on a single `master` branch. There are no per-browser
+branches. The only file that differs between browsers is `manifest.json`, which is
+**generated** by a build step and is **not committed to git**.
 
 ```
-main          <- shared source; never contains browser-specific code
-  |
-  +-- chrome  <- only manifest.json differs
-  +-- firefox <- only manifest.json differs
+manifest.base.json          <- all shared manifest fields (no background field)
+scripts/build-manifest.js   <- generates manifest.json for a given browser
+manifest.json               <- generated; gitignored
 ```
 
-#### Chrome `manifest.json`
+Run before loading or reloading in either browser:
+```
+npm run build:chrome    # or
+npm run build:firefox
+```
+
+#### `manifest.base.json`
+
+Contains all fields shared across browsers, including `browser_specific_settings.gecko`
+(Chrome silently ignores unknown keys):
+
 ```json
 {
   "manifest_version": 3,
   "name": "Noprocrast",
   "version": "1.0.0",
   "description": "Limit time on distracting websites.",
-  "permissions": ["storage", "tabs", "alarms", "webNavigation"],
+  "permissions": ["storage", "alarms", "webNavigation", "activeTab"],
   "host_permissions": ["<all_urls>"],
-  "background": {
-    "service_worker": "background/service-worker.js"
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
   },
   "action": {
     "default_popup": "popup/popup.html",
-    "default_icon": { "48": "icons/icon48.png" }
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
   },
   "options_page": "options/options.html",
   "content_security_policy": {
     "extension_pages": "default-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'"
-  }
-}
-```
-
-#### Firefox `manifest.json`
-Identical to Chrome with one addition:
-```json
-{
+  },
   "browser_specific_settings": {
     "gecko": {
-      "id": "noprocrast@extension",
+      "id": "NoProcrast@pganguli.github.io",
       "strict_min_version": "128.0"
     }
   }
 }
 ```
+
+#### What the build script adds
+
+For **Chrome**: `background: { service_worker: "background/service-worker.js", type: "module" }`
+
+For **Firefox**: `background: { service_worker: "background/service-worker.js", scripts: ["background/service-worker.js"] }`
+(both fields; Firefox MV3 accepts `service_worker` but also requires `scripts` for some versions)
 
 ### 3.3 API Namespace Shim
 
@@ -202,7 +221,10 @@ export default api;
 
 ```
 noprocrast/
-├── manifest.json
+├── manifest.base.json       # Shared manifest source (no background field); committed
+├── manifest.json            # Generated by build step — gitignored
+├── scripts/
+│   └── build-manifest.js    # Generates manifest.json for a given browser (CommonJS)
 ├── shared/
 │   ├── browser-api.js       # API namespace shim
 │   ├── storage.js           # Storage read/write helpers
@@ -227,8 +249,10 @@ noprocrast/
 │   ├── icon48.png
 │   └── icon128.png
 ├── .eslintrc.json
-├── .eslintignore
-└── package.json
+├── .eslintignore            # Ignores node_modules/ and scripts/ (CommonJS)
+├── .gitignore               # Ignores node_modules/ and manifest.json
+├── package.json
+└── package-lock.json
 ```
 
 There is **no content script**. The extension is entirely driven by `webNavigation` and
@@ -239,12 +263,12 @@ There is **no content script**. The extension is entirely driven by `webNavigati
 | File | Responsibility |
 |---|---|
 | `shared/browser-api.js` | Unified `api` export — only reference to `chrome`/`browser` |
-| `shared/storage.js` | `getConfig()`, `saveConfig()`, `getState()`, `saveState()`, `clearState()` |
+| `shared/storage.js` | `getConfig()`, `saveConfig()`, `getState()`, `saveState()`, `clearState()`, `getAllStateDomains()` |
 | `shared/domain.js` | `domainMatches(hostname, configDomain)`, `extractHostname(url)` |
 | `shared/limits.js` | `getEffectiveLimits(hostname, config)` |
-| `background/service-worker.js` | Navigation listeners, visit timing, block/unblock, alarm handling |
-| `pages/blocked.js` | Displays remaining minutes, handles override confirm flow |
-| `popup/popup.js` | Reads and displays per-domain status |
+| `background/service-worker.js` | Navigation listeners, visit timing, block/unblock, alarm handling, all message handlers |
+| `pages/blocked.js` | Displays remaining minutes, handles 30-second countdown override flow |
+| `popup/popup.js` | Reads and displays per-domain status; quick add-site via `addSite` message |
 | `options/options.js` | Reads/writes config, manages site list UI |
 
 ---
@@ -254,51 +278,66 @@ There is **no content script**. The extension is entirely driven by `webNavigati
 ### 5.1 Constants
 
 ```js
-const ALARM_PREFIX   = 'unblock:';
-const DEFAULT_CONFIG = {
-  global: { maxvisit: 20, minaway: 180 },
-  sites: [],
-};
+const ALARM_PREFIX = 'unblock:';
 ```
 
-### 5.2 Navigation Events
+### 5.2 In-Memory Tab State
 
-The service worker listens to two `webNavigation` events on top-level frames only
-(`frameId === 0`):
+The service worker keeps an in-memory map of the last committed URL per tab. This is used
+to flush the outgoing domain on each navigation without querying the tabs API:
+
+```js
+/** @type {Map<number, string>} tabId -> last known URL */
+const tabUrls = new Map();
+```
+
+`tabUrls` is populated in `webNavigation.onCommitted` and entries are removed in
+`tabs.onRemoved`.
+
+### 5.3 Navigation Events
+
+The service worker listens to two events on top-level frames only (`frameId === 0`):
 
 **`webNavigation.onCommitted`** — fires when a navigation is committed in a tab.
 
 Used for two purposes:
-1. **Close out the previous visit**: if the tab was previously on a tracked domain, compute
-   elapsed time and flush it to storage.
+
+1. **Close out the previous visit**: look up the tab's previous URL in `tabUrls`, and if
+   it was a tracked domain, flush elapsed time to storage.
 2. **Check the new domain**: if the new URL is a tracked domain, check whether it is
    blocked or over its limit; redirect to the block page if so, otherwise record
    `visitStart`.
 
 **`tabs.onRemoved`** — fires when a tab is closed.
 
-Used to flush any open `visitStart` for that tab's domain.
+Used to flush any open `visitStart` for that tab's last known URL.
 
 No other events are needed.
 
-### 5.3 Navigation Handler
+### 5.4 Navigation Handler
 
 ```
-async function handleNavigation(tabId, newUrl, previousUrl):
+async function handleNavigation(tabId, newUrl):
+
+  previousUrl = tabUrls.get(tabId) ?? null
+  tabUrls.set(tabId, newUrl)
 
   // --- Flush previous visit ---
   if previousUrl is set:
     prevHostname = extractHostname(previousUrl)
-    if isTracked(prevHostname):
+    prevConfig   = await getConfig()
+    if prevHostname and isTracked(prevHostname, prevConfig):
       await flushVisit(prevHostname)
 
   // --- Check new destination ---
   if isExtensionPage(newUrl): return
 
   newHostname = extractHostname(newUrl)
-  if not isTracked(newHostname): return
+  if not newHostname: return
 
   config = await getConfig()
+  if not isTracked(newHostname, config): return
+
   state  = await getState(newHostname)
   limits = getEffectiveLimits(newHostname, config)
 
@@ -311,24 +350,28 @@ async function handleNavigation(tabId, newUrl, previousUrl):
       await redirectTabToBlockPage(tabId, newHostname, newUrl)
       return
 
+  // Re-read state after potential clearBlock
+  freshState  = await getState(newHostname)
+  freshLimits = getEffectiveLimits(newHostname, config)
+
   // Check if session is exhausted
-  if state.sessionUsed >= limits.maxvisit * 60_000:
+  if freshState.sessionUsed >= freshLimits.maxvisit * 60_000:
     await blockSite(newHostname, tabId, newUrl)
     return
 
   // Allow visit — record start time
-  state.visitStart = Date.now()
-  await saveState(newHostname, state)
+  freshState.visitStart = Date.now()
+  await saveState(newHostname, freshState)
 ```
 
-### 5.4 Flushing a Visit
+### 5.5 Flushing a Visit
 
 ```
 async function flushVisit(hostname):
   state = await getState(hostname)
   if state.visitStart is null: return
 
-  elapsed          = Date.now() - state.visitStart
+  elapsed           = Date.now() - state.visitStart
   state.sessionUsed += elapsed
   state.visitStart  = null
   await saveState(hostname, state)
@@ -336,7 +379,7 @@ async function flushVisit(hostname):
 
 `flushVisit` is called both on navigation away and on tab close.
 
-### 5.5 Blocking and Clearing
+### 5.6 Blocking and Clearing
 
 ```
 async function blockSite(hostname, tabId, originalUrl):
@@ -356,7 +399,7 @@ async function scheduleUnblockAlarm(hostname):
   })
 ```
 
-### 5.6 Alarm Handler
+### 5.7 Alarm Handler
 
 ```js
 api.alarms.onAlarm.addListener(async (alarm) => {
@@ -366,7 +409,7 @@ api.alarms.onAlarm.addListener(async (alarm) => {
 });
 ```
 
-### 5.7 Override Handler
+### 5.8 Override Handler
 
 ```
 async function handleOverride(hostname):
@@ -374,14 +417,28 @@ async function handleOverride(hostname):
   await api.alarms.clear(ALARM_PREFIX + hostname)
 ```
 
-### 5.8 Startup: Reconcile State
+### 5.9 Message Handler
+
+The service worker handles all runtime messages from page scripts. Supported `type` values:
+
+| `type` | Payload | Returns |
+|---|---|---|
+| `getBlockStatus` | `{ domain }` | `{ blockedAt, minaway }` |
+| `override` | `{ domain }` | `{ ok: true }` |
+| `getConfig` | — | config object |
+| `saveConfig` | `{ config }` | `{ ok: true }` |
+| `addSite` | `{ domain }` | `{ ok: true }` (no-op if domain already present) |
+| `removeSite` | `{ domain }` | `{ ok: true }` — also clears state and cancels alarm |
+| `getAllStatus` | — | array of `{ domain, sessionUsed, blockedAt, maxvisit, minaway }` |
+
+### 5.10 Startup: Reconcile State
 
 On service worker startup, open `visitStart` entries may exist from a previous session
 (e.g., the browser was force-quit). These must be flushed:
 
 ```
 async function reconcileStateOnStartup():
-  for each domain with stored state:
+  for each domain in getAllStateDomains():
     state = await getState(domain)
 
     // Flush any open visit
@@ -396,6 +453,9 @@ async function reconcileStateOnStartup():
       if elapsed >= limits.minaway * 60_000:
         await clearBlock(domain)
 ```
+
+Called both on `api.runtime.onInstalled` and unconditionally at service worker startup
+(top level of `service-worker.js`).
 
 ---
 
@@ -413,9 +473,11 @@ URL format:
 3. Compute `remainingMs = (minaway * 60_000) - (Date.now() - blockedAt)` **once** at load.
    Display: *"You will be able to use this site again in X minutes."*
    No live countdown.
-4. Show an "Override — I really need this" button. First click changes the label to
-   *"Are you sure? Click again to confirm."* Second click sends
-   `{ type: 'override', domain }` to the service worker and redirects to `returnTo`.
+4. Show an "Override — I really need this" button. First click disables the button and
+   starts a 30-second countdown (`OVERRIDE_DELAY = 30`), showing *"Hold on… Ns"*.
+   After the countdown: button re-enables with label *"Click again to confirm override"*.
+   Second click sends `{ type: 'override', domain }` to the service worker and redirects
+   to `returnTo`.
 5. Validate `returnTo` before use: accept only `https://` or `http://` schemes; fall back
    to `https://${domain}` otherwise.
 
@@ -423,13 +485,18 @@ URL format:
 
 ## 7. Popup
 
-Read-only status view:
+Status view with quick-add:
 
 - Lists all tracked domains with their status:
-  - **Blocked** — shows *"Xm remaining"* (computed from `blockedAt + minaway - now`).
+  - **Blocked** — shows *"Blocked — Xm remaining"* (computed from `blockedAt + minaway - now`).
   - **Active** — shows *"Xm used / Ym allowed"* (based on `sessionUsed` as of last flush).
   - **Idle** — no time accumulated.
-- A "Settings" link that calls `api.runtime.openOptionsPage()`.
+- A footer row with a domain text input (pre-filled with the current tab's hostname via
+  `api.tabs.query`) and an "Add" button. Sends `{ type: 'addSite', domain }` to the
+  service worker on submit. New site appends immediately as Idle without reloading the
+  full list. Enter key also triggers add. Domain validated against the same regex as the
+  options page.
+- A "Settings" button that calls `api.runtime.openOptionsPage()`.
 
 All figures are point-in-time snapshots from the last navigation event — they do not
 update live while the popup is open.
@@ -451,15 +518,37 @@ Two sections:
 - "Add site" at the bottom: hostname text input + Add button.
 - Domain validated against `/^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/i` before
   saving; inline error shown on failure.
-- Remove button deletes from config and calls `clearState(domain)`.
+- Remove button sends `{ type: 'removeSite', domain }` to the service worker (clears state
+  and cancels alarm server-side); row removed from UI.
+
+All config mutations go through `{ type: 'saveConfig', config }` or
+`{ type: 'removeSite' }` messages to the service worker — no direct storage access from
+`options.js`.
 
 No history, statistics, or enable/disable toggle.
 
 ---
 
-## 9. Code Quality Standards
+## 9. CI
 
-### 9.1 ESLint Configuration (`.eslintrc.json`)
+`.github/workflows/ci.yml` runs on every push to `master`:
+
+**`lint` job**: checks out, installs (skipped on `node_modules` cache hit keyed on
+`package-lock.json`), runs `npm run lint`. Fails the pipeline on any ESLint error or
+warning.
+
+**`package` job** (matrix: chrome, firefox): depends on `lint`. Checks out, restores
+`node_modules` cache, runs `npm run build:${browser}`, zips the extension, and uploads a
+`noprocrast-${browser}` artifact.
+
+Actions used: `checkout@v6`, `setup-node@v6` (Node.js 24, `cache: 'npm'`),
+`cache@v5` (keyed on `package-lock.json` hash for `node_modules`), `upload-artifact@v6`.
+
+---
+
+## 10. Code Quality Standards
+
+### 10.1 ESLint Configuration (`.eslintrc.json`)
 
 ```json
 {
@@ -486,11 +575,16 @@ No history, statistics, or enable/disable toggle.
 }
 ```
 
+`scripts/` is excluded from ESLint (listed in `.eslintignore`) because `build-manifest.js`
+uses CommonJS (`require`/`module.exports`), which conflicts with `sourceType: 'module'`.
+
 `package.json`:
 ```json
 {
   "scripts": {
-    "lint": "eslint '**/*.js' --ignore-path .eslintignore"
+    "lint": "eslint '**/*.js' --ignore-path .eslintignore",
+    "build:chrome": "node scripts/build-manifest.js --browser chrome",
+    "build:firefox": "node scripts/build-manifest.js --browser firefox"
   },
   "devDependencies": {
     "eslint": "^8.0.0"
@@ -498,26 +592,20 @@ No history, statistics, or enable/disable toggle.
 }
 ```
 
-`.eslintignore`:
-```
-node_modules/
-```
+All code must pass `npm run lint` with zero warnings or errors.
 
-All code must pass `npm run lint` with zero warnings or errors before any phase is
-considered complete.
-
-### 9.2 Naming Conventions
+### 10.2 Naming Conventions
 
 | Kind | Convention | Example |
 |---|---|---|
 | Variables and functions | `camelCase` | `sessionUsed`, `flushVisit` |
-| Constants | `UPPER_SNAKE_CASE` | `ALARM_PREFIX`, `DEFAULT_CONFIG` |
+| Constants | `UPPER_SNAKE_CASE` | `ALARM_PREFIX`, `OVERRIDE_DELAY` |
 | Filenames | `kebab-case` | `browser-api.js`, `service-worker.js` |
 | Message `type` strings | `camelCase` | `'getBlockStatus'`, `'override'` |
 | Storage keys | `camelCase` with `:` separator | `'config'`, `'state:reddit.com'` |
 | DOM IDs and classes | `kebab-case` | `id="remaining-display"`, `class="override-btn"` |
 
-### 9.3 Modularity Rules
+### 10.3 Modularity Rules
 
 - Each file in `shared/` exports only pure functions — no side effects, no API calls.
 - `service-worker.js` is the only file that registers event listeners and calls `api.*`
@@ -527,9 +615,9 @@ considered complete.
   — no direct storage access from page scripts.
 - No inline `<script>` tags in any HTML file.
 
-### 9.4 Security Practices
+### 10.4 Security Practices
 
-- **CSP** (set in `manifest.json`):
+- **CSP** (set in `manifest.base.json`):
   `default-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'`
 - **No `innerHTML` or `document.write`** — all DOM work uses `textContent`, `createElement`,
   `appendChild`.
@@ -541,205 +629,25 @@ considered complete.
 
 ---
 
-## 10. Implementation Plan
-
-Each phase has a clear "done when" condition. All code must pass `npm run lint` before a
-phase is marked complete.
-
----
-
-### Phase 1 — Scaffold, tooling, and shim
-
-**Goal:** Extension loads in both browsers; lint passes.
-
-Tasks:
-1. Create the full directory structure from Section 4.1 with empty placeholder files.
-2. Write `manifest.json` for Chrome.
-3. Write `shared/browser-api.js` per Section 3.3.
-4. Install ESLint; write `.eslintrc.json` and `.eslintignore`.
-5. Add minimal `export` stubs to all `shared/` modules.
-6. Run `npm run lint` — fix all errors.
-7. Load in Chrome (`chrome://extensions`) — no console errors.
-8. Load in Firefox (`about:debugging`) with the Firefox manifest — no console errors.
-
-**Done when:** Extension loads in both browsers; `npm run lint` exits clean.
-
----
-
-### Phase 2 — Shared modules
-
-**Goal:** All pure utility functions implemented, documented, and linted.
-
-Tasks:
-1. `shared/domain.js`: `extractHostname(url)` and `domainMatches(hostname, configDomain)`.
-2. `shared/limits.js`: `getEffectiveLimits(hostname, config)`.
-3. `shared/storage.js`: `getConfig()`, `saveConfig(config)`, `getState(domain)`,
-   `saveState(domain, state)`, `clearState(domain)`. `getConfig()` must initialise missing
-   fields from `DEFAULT_CONFIG`.
-4. JSDoc on every export (param types, return type, one-line description).
-5. `npm run lint` clean.
-
-**Done when:** All shared modules export documented, linted functions; `getConfig()` returns
-the full default shape against empty storage.
-
----
-
-### Phase 3 — Navigation event pipeline
-
-**Goal:** Service worker fires on navigation and correctly identifies tracked domains.
-
-Tasks:
-1. Register `api.webNavigation.onCommitted` in `service-worker.js` (top-level frames only).
-2. Register `api.tabs.onRemoved`.
-3. For each event, extract the hostname and log whether it is tracked (using `getConfig()`
-   and `domainMatches()`).
-4. Confirm logging fires correctly when navigating to and away from a test domain.
-
-**Done when:** Navigation events are received; tracked domains are identified correctly.
-
----
-
-### Phase 4 — Visit timing
-
-**Goal:** `sessionUsed` accumulates correctly across navigations and tab closes.
-
-Tasks:
-1. Implement `flushVisit(hostname)` per Section 5.4.
-2. In the navigation handler, call `flushVisit` for the outgoing domain before processing
-   the incoming one.
-3. Call `flushVisit` on `tabs.onRemoved`.
-4. Implement `reconcileStateOnStartup()` per Section 5.8 and call it on
-   `api.runtime.onInstalled` and service worker startup.
-5. Test: visit a tracked domain, navigate away, inspect storage — `sessionUsed` must have
-   increased; `visitStart` must be null.
-6. Test: visit a tracked domain, simulate restart (reload the service worker) — `visitStart`
-   is flushed on startup.
-
-**Done when:** `sessionUsed` accumulates correctly; open `visitStart` entries are flushed on
-startup.
-
----
-
-### Phase 5 — Block trigger and redirect
-
-**Goal:** Sites block when `sessionUsed` reaches `maxvisit`; redirect fires correctly.
-
-Tasks:
-1. Implement the session-exhaustion check in `handleNavigation` per Section 5.3.
-2. Implement `blockSite(hostname, tabId, originalUrl)` and
-   `scheduleUnblockAlarm(hostname)` per Section 5.5.
-3. Implement `redirectTabToBlockPage(tabId, hostname, originalUrl)`.
-4. Create `pages/blocked.html` with minimal content (show domain from query string).
-5. For testing: set `maxvisit: 0.1` in default config; confirm block fires after ~6 seconds
-   of navigation.
-6. Remove the test override before marking the phase complete.
-
-**Done when:** Sites redirect to the block page when `sessionUsed >= maxvisit`; direct
-URL navigation to a blocked domain also redirects.
-
----
-
-### Phase 6 — Cooldown and auto-restore
-
-**Goal:** After `minaway` minutes the site unblocks automatically.
-
-Tasks:
-1. Implement `clearBlock(hostname)` per Section 5.5.
-2. Wire `api.alarms.onAlarm` per Section 5.6.
-3. In `reconcileStateOnStartup`, clear expired blocks per Section 5.8.
-4. Test: with short timers confirm auto-restore fires; simulate browser restart during
-   cooldown and confirm remaining time is honoured.
-
-**Done when:** Blocked sites unblock after `minaway` minutes, including across browser
-restarts.
-
----
-
-### Phase 7 — Block page and override
-
-**Goal:** Block page shows correct remaining time; override grants a fresh window.
-
-Tasks:
-1. Complete `pages/blocked.js` per Section 6.
-2. Add `getBlockStatus` message handler to `service-worker.js`: returns
-   `{ blockedAt, minaway }`.
-3. Add `override` message handler: calls `handleOverride(hostname)` per Section 5.7,
-   responds `{ ok: true }`.
-4. Validate `returnTo` before redirect.
-5. Test two-click confirm; confirm override grants one fresh `maxvisit` window then
-   re-blocks.
-
-**Done when:** Block page shows correct minutes remaining; override flow works end-to-end.
-
----
-
-### Phase 8 — Options page
-
-**Goal:** Users can manage global defaults and the site list.
-
-Tasks:
-1. Build `options.html` and `options.js` per Section 8.
-2. On load, send `{ type: 'getConfig' }` to the service worker and populate fields.
-3. Global defaults: save on blur; show *"Saved ✓"* for 2 seconds.
-4. Add site: validate hostname regex; show inline error on failure.
-5. Remove site: send `{ type: 'removeSite', domain }` to the service worker; it removes
-   from config and calls `clearState(domain)`.
-6. Per-site overrides: empty input stored as `undefined`, not `0`.
-7. All DOM updates via `textContent`/`createElement` — no `innerHTML`.
-
-**Done when:** Options page correctly reads and modifies stored config; lint passes.
-
----
-
-### Phase 9 — Popup
-
-**Goal:** Toolbar popup shows accurate read-only status.
-
-Tasks:
-1. Build `popup.html` and `popup.js` per Section 7.
-2. On load, send `{ type: 'getAllStatus' }` to the service worker.
-3. Service worker responds with an array of
-   `{ domain, sessionUsed, blockedAt, maxvisit, minaway }` for all configured sites.
-4. Render status rows per the three states in Section 7.
-5. "Settings" link calls `api.runtime.openOptionsPage()`.
-
-**Done when:** Popup shows accurate status; no direct storage access from popup JS.
-
----
-
-### Phase 10 — Edge cases and cross-browser QA
-
-**Goal:** All edge cases handled; extension verified in both browsers.
-
-Tasks:
-1. **Site removed while blocked**: `removeSite` handler clears state and cancels the alarm.
-2. **Config changed while blocked**: `getEffectiveLimits` is called at check time, so any
-   change to `minaway` is reflected on the next navigation to that domain.
-3. **Malformed storage**: validate shape on every read; discard and reset to defaults if
-   invalid.
-4. **Firefox branch**: create the `firefox` branch, swap in the Firefox manifest, load in
-   Firefox, run through the full checklist in Section 11.
-5. **Chrome branch**: same on Chrome.
-6. `npm run lint` clean on both branches.
-
-**Done when:** All edge cases pass; checklist complete in both browsers.
-
----
-
 ## 11. Key Design Decisions
 
 | Decision | Rationale |
-|---|---|
+| --- | --- |
 | No content script | Eliminates per-tab background polling; nothing runs on every page |
 | Navigation-event timing | Pure event-driven model; service worker only wakes on real user actions |
 | `visitStart` persisted to storage | Survives browser restarts; open visits are flushed on next startup |
 | `api.alarms` for cooldown expiry | Persists across service worker restarts; correct for long timers |
-| Static "X minutes remaining" on block page | Removes the need for any interval or live message-passing from the block page |
-| Two manifests, one codebase | Only `manifest.json` differs between browsers; all logic stays in sync |
+| Static "X minutes remaining" on block page | Removes the need for any interval or live message-passing from the page |
+| Build-script over branch-per-browser | Single `master` branch; `manifest.base.json` + `scripts/build-manifest.js` is simpler than maintaining two long-lived branches. `manifest.json` is not tracked by git and is generated by CI |
+| `browser_specific_settings.gecko` always in `manifest.base.json` | Chrome silently ignores unknown manifest keys, so no separate Chrome-specific manifest is needed to omit this field |
 | `globalThis.browser ?? globalThis.chrome` in one file | Single point of browser-detection; all other modules are browser-agnostic |
 | Page scripts never access storage | Only the service worker mutates state; data flow is fully auditable |
 | No `innerHTML` | Eliminates the entire class of DOM injection vulnerabilities |
 | `storage.local` not `storage.sync` | Avoids sync quota and write-rate limits |
+| `activeTab` instead of `tabs` permission | Narrower permission; sufficient for `tabs.query` on the active tab in the popup |
+| `tabUrls` in-memory Map | Tracks each tab's previous URL without an extra storage read on every navigation event |
+| 30-second countdown for override | A simple double-click is too easily triggered accidentally; a timed delay forces genuine intentionality |
+| Quick add-site in popup | Reduces friction for the most common config action; the options page remains the full settings UI |
 
 ---
 
@@ -752,11 +660,13 @@ Run through this checklist in **both Chrome and Firefox** before any release.
 - [ ] After `maxvisit` total minutes, the next visit redirects to the block page
 - [ ] Block page shows the correct domain and a correct static minutes-remaining figure
 - [ ] Direct URL navigation to a blocked domain also redirects to the block page
-- [ ] Two-click override grants one fresh `maxvisit` window, then re-blocks normally
+- [ ] Override countdown takes ~30 seconds; second click grants one fresh `maxvisit` window, then re-blocks normally
 - [ ] After `minaway` minutes, the site is accessible again automatically
 - [ ] Per-site `maxvisit` / `minaway` overrides take precedence over global defaults
-- [ ] Adding a site in options takes effect on the next navigation to that domain
+- [ ] Adding a site via popup takes effect on the next navigation to that domain
+- [ ] Adding a site via options page takes effect on the next navigation to that domain
 - [ ] Removing a site clears its state and restores access if it was blocked
-- [ ] Browser restart during cooldown: remaining cooldown is honoured correctly
+- [ ] Browser restart during cooldown: remaining cooldown is honored correctly
 - [ ] Browser restart during an active visit: elapsed time is flushed on startup
-- [ ] `npm run lint` passes with zero warnings or errors on both branches
+- [ ] `npm run lint` passes with zero warnings or errors
+- [ ] `npm run build:chrome` and `npm run build:firefox` each produce a valid `manifest.json`
