@@ -1,1 +1,79 @@
-Limit time spent on distracting sites.
+Noprocrast
+==========
+
+A browser extension that limits time spent on distracting websites, modelled on
+Hacker News's `noprocrast` feature.
+
+Each blocked site gets a configurable visit window (`maxvisit` minutes). Once that
+window is used up, the tab redirects to a block page and stays blocked for a
+cooldown period (`minaway` minutes). A manual override is available but only resets
+the timer — it does not disable the system.
+
+How it works
+------------
+
+- Navigation to a tracked domain records a visit start time.
+- Navigation away (or closing the tab) flushes elapsed time into a session counter.
+- When the session counter reaches `maxvisit`, the site is blocked and a cooldown
+  alarm is scheduled via browser.alarms.
+- After `minaway` minutes the alarm fires and the site is automatically unblocked.
+- All timing is event-driven — no background polling, no content scripts.
+
+Configuration
+-------------
+
+Global defaults (configurable in Settings):
+
+  `maxvisit =  20 minutes`
+  `minaway  = 180 minutes`
+
+Per-site overrides for `maxvisit` and/or `minaway` can be set from the Settings page.
+Subdomains match automatically: adding "reddit.com" also covers "old.reddit.com".
+
+Browser support
+---------------
+
+  Chrome   120+   (MV3, service worker)
+  Firefox  128+   (MV3, service worker)
+
+The codebase is identical across browsers. Only manifest.json differs:
+the Firefox manifest adds browser_specific_settings for the gecko engine.
+For Firefox, use the manifest on the `firefox` branch.
+
+Installation (unpacked)
+-----------------------
+
+1. Clone the repository.
+2. Run: npm install
+3. Chrome: open chrome://extensions, enable Developer mode, click
+   "Load unpacked", select the repo directory.
+4. Firefox: open about:debugging, click "This Firefox", click
+   "Load Temporary Add-on", select manifest.json from the `firefox` branch.
+
+Development
+-----------
+
+  `npm run lint`      Run ESLint (must pass with zero warnings or errors)
+
+File structure
+--------------
+
+  manifest.json
+  shared/
+    browser-api.js    Unified api export (only file referencing chrome/browser)
+    storage.js        Storage read/write helpers
+    domain.js         domainMatches(), extractHostname()
+    limits.js         getEffectiveLimits()
+  background/
+    service-worker.js All event listeners and timer logic
+  pages/
+    blocked.*Block page with static countdown and override button
+  popup/
+    popup.*           Read-only status view
+  options/
+    options.*         Settings page
+
+License
+-------
+
+See LICENSE.

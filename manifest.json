@@ -1,22 +1,19 @@
 {
   "manifest_version": 3,
-  "name": "NoProcrast",
-  "version": "1.1",
-  "description": "Limit time spent on distracting sites.",
-  "permissions": ["storage", "tabs", "scripting"],
+  "name": "Noprocrast",
+  "version": "1.0.0",
+  "description": "Limit time on distracting websites.",
+  "permissions": ["storage", "tabs", "alarms", "webNavigation"],
   "host_permissions": ["<all_urls>"],
   "background": {
-    "service_worker": "background.js",
-    "scripts": ["background.js"]
+    "service_worker": "background/service-worker.js"
   },
-  "options_page": "options.html",
   "action": {
-    "default_popup": "options.html",
-    "default_icon": "icon.png"
+    "default_popup": "popup/popup.html",
+    "default_icon": { "48": "icons/icon48.png" }
   },
-  "browser_specific_settings": {
-    "gecko": {
-      "id": "NoProcrast@pganguli.github.io"
-    }
+  "options_page": "options/options.html",
+  "content_security_policy": {
+    "extension_pages": "default-src 'self'; script-src 'self'; style-src 'self'; object-src 'none'"
   }
 }

@@ -1,0 +1,70 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: system-ui, sans-serif;
+  min-width: 280px;
+  margin: 0;
+  color: #222;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #eee;
+}
+
+h1 {
+  font-size: 1rem;
+  margin: 0;
+}
+
+#settings-btn {
+  background: none;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 0.25rem 0.6rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+main {
+  padding: 0.5rem 0;
+}
+
+#empty-msg {
+  padding: 0.75rem 1rem;
+  color: #888;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.site-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 0.9rem;
+}
+
+.site-domain {
+  font-weight: 500;
+}
+
+.site-status {
+  color: #555;
+  font-size: 0.85rem;
+}
+
+.site-status.blocked {
+  color: #c0392b;
+  font-weight: bold;
+}
+
+.site-status.active {
+  color: #27ae60;
+}

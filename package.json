@@ -1,0 +1,8 @@
+{
+  "scripts": {
+    "lint": "eslint '**/*.js' --ignore-path .eslintignore"
+  },
+  "devDependencies": {
+    "eslint": "^8.0.0"
+  }
+}

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Noprocrast Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <main>
+    <h1>Noprocrast Settings</h1>
+
+    <section>
+      <h2>Global Defaults</h2>
+      <div class="field-row">
+        <label for="global-maxvisit">Max visit (minutes)</label>
+        <input type="number" id="global-maxvisit" min="1">
+      </div>
+      <div class="field-row">
+        <label for="global-minaway">Min away (minutes)</label>
+        <input type="number" id="global-minaway" min="1">
+      </div>
+      <span id="saved-msg" class="saved-msg" aria-live="polite"></span>
+    </section>
+
+    <section>
+      <h2>Blocked Sites</h2>
+      <table id="sites-table">
+        <thead>
+          <tr>
+            <th>Domain</th>
+            <th>Max Visit (min)</th>
+            <th>Min Away (min)</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="sites-tbody"></tbody>
+      </table>
+      <div class="add-row">
+        <input type="text" id="new-domain" placeholder="example.com">
+        <button id="add-btn">Add site</button>
+        <span id="domain-error" class="error-msg" aria-live="polite"></span>
+      </div>
+    </section>
+  </main>
+  <script type="module" src="options.js"></script>
+</body>
+</html>

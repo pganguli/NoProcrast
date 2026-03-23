@@ -1,0 +1,22 @@
+{
+  "env": { "browser": true, "es2022": true, "webextensions": true },
+  "parserOptions": { "ecmaVersion": 2022, "sourceType": "module" },
+  "extends": ["eslint:recommended"],
+  "rules": {
+    "no-var": "error",
+    "prefer-const": "error",
+    "eqeqeq": ["error", "always"],
+    "no-implicit-globals": "error",
+    "no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
+    "no-console": ["warn", { "allow": ["warn", "error"] }],
+    "no-eval": "error",
+    "no-implied-eval": "error",
+    "no-new-func": "error",
+    "curly": "error",
+    "semi": ["error", "always"],
+    "quotes": ["error", "single"],
+    "indent": ["error", 2],
+    "no-trailing-spaces": "error",
+    "eol-last": "error"
+  }
+}
