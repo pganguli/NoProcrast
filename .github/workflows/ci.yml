@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run lint
+
+  package:
+    needs: lint
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        browser: [chrome, firefox]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build:${{ matrix.browser }}
+      - run: zip -r noprocrast-${{ matrix.browser }}.zip manifest.json shared/ background/ pages/ popup/ options/ icons/ LICENSE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: noprocrast-${{ matrix.browser }}
+          path: noprocrast-${{ matrix.browser }}.zip
