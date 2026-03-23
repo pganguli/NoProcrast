@@ -23,8 +23,7 @@
       "id": "NoProcrast@pganguli.github.io",
       "strict_min_version": "140.0",
       "data_collection_permissions": {
-        "usages": [],
-        "required": false
+        "required": ["none"]
       }
     },
     "gecko_android": {
