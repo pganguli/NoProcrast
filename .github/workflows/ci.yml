@@ -8,12 +8,18 @@ jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'npm'
+      - uses: actions/cache@v5
+        id: node-modules-cache
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
       - run: npm ci
+        if: steps.node-modules-cache.outputs.cache-hit != 'true'
       - run: npm run lint
 
   package:
@@ -23,15 +29,21 @@ jobs:
       matrix:
         browser: [chrome, firefox]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'npm'
+      - uses: actions/cache@v5
+        id: node-modules-cache
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('package-lock.json') }}
       - run: npm ci
+        if: steps.node-modules-cache.outputs.cache-hit != 'true'
       - run: npm run build:${{ matrix.browser }}
       - run: zip -r noprocrast-${{ matrix.browser }}.zip manifest.json shared/ background/ pages/ popup/ options/ icons/ LICENSE
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: noprocrast-${{ matrix.browser }}
           path: noprocrast-${{ matrix.browser }}.zip
