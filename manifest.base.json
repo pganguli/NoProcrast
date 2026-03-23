@@ -21,10 +21,14 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "NoProcrast@pganguli.github.io",
-      "strict_min_version": "128.0",
+      "strict_min_version": "140.0",
       "data_collection_permissions": {
-        "usages": []
+        "usages": [],
+        "required": false
       }
+    },
+    "gecko_android": {
+      "strict_min_version": "142.0"
     }
   }
 }
