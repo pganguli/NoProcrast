@@ -3,15 +3,15 @@ Noprocrast
 
 A browser extension that limits time spent on distracting websites, modelled on Hacker News's `noprocrast` feature.
 
-Each blocked site gets a configurable visit window (`maxvisit` minutes). Once that window is used up, the tab redirects to a block page and stays blocked for a cooldown period (`minaway` minutes). A manual override is available but only resets the timer — it does not disable the system.
+Each tracked site gets a configurable visit window (`maxvisit` minutes). Once that window is used up, the tab redirects to a block page and stays blocked for a cooldown period (`minaway` minutes). A manual override is available but only resets the timer — it does not disable the system.
 
 How it works
 ------------
 
 - Navigation to a tracked domain records a visit start time.
 - Navigation away (or closing the tab) flushes elapsed time into a session counter.
-- When the session counter reaches `maxvisit`, the site is blocked and a cooldown alarm is scheduled via `browser.alarms`.
-- After `minaway` minutes the alarm fires and the site is automatically unblocked.
+- When the session counter reaches `maxvisit`, the site is blocked and the tab redirects to a block page.
+- After `minaway` minutes have elapsed, the next visit attempt is allowed through automatically.
 - All timing is event-driven — no background polling, no content scripts.
 
 Configuration
@@ -23,7 +23,10 @@ Global defaults (configurable in Settings):
   `minaway  = 180 minutes`
 
 Per-site overrides for `maxvisit` and/or `minaway` can be set from the Settings page.
-Subdomains match automatically: adding `reddit.com` also covers `old.reddit.com`.
+
+Subdomain matching is hierarchical: adding `youtube.com` covers `www.youtube.com`,
+`music.youtube.com`, and any other subdomain, with a shared time budget. Adding
+`www.youtube.com` specifically tracks only that subdomain and leaves others unaffected.
 
 Browser support
 ---------------
@@ -31,7 +34,7 @@ Browser support
   Chrome   120+   (MV3, service worker)
   Firefox  128+   (MV3, background scripts)
 
-The extension source is identical across browsers. A build step generates a browser-specific `manifest.json` from `manifest.base.json`, which is the shared source of truth. Chrome requires a plain service worker entry; Firefox additionally needs a `background.scripts` fallback.
+The extension source is identical across browsers. A build step generates a browser-specific `manifest.json` from `manifest.base.json`, which is the shared source of truth.
 
 Installation (unpacked)
 -----------------------
