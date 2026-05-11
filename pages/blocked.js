@@ -29,7 +29,7 @@ document.getElementById('domain-display').textContent = domain;
 
 // Fetch block status from service worker
 api.runtime.sendMessage({ type: 'getBlockStatus', domain }).then((response) => {
-  if (!response || response.blockedAt === null) {
+  if (!response || typeof response.blockedAt !== 'number') {
     document.getElementById('remaining-display').textContent = 'This site is no longer blocked.';
     return;
   }

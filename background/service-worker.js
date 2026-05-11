@@ -3,8 +3,6 @@ import { getConfig, saveConfig, getState, saveState, clearState, getAllStateDoma
 import { extractHostname, domainMatches } from '../shared/domain.js';
 import { getEffectiveLimits } from '../shared/limits.js';
 
-const ALARM_PREFIX = 'unblock:';
-
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -19,13 +17,13 @@ function isExtensionPage(url) {
 }
 
 /**
- * Returns true if hostname matches any configured site.
+ * Returns the config domain that matches hostname, or null if not tracked.
  * @param {string} hostname
  * @param {object} config
- * @returns {boolean}
+ * @returns {string|null}
  */
-function isTracked(hostname, config) {
-  return config.sites.some(s => domainMatches(hostname, s.domain));
+function getConfigDomain(hostname, config) {
+  return config.sites.find(s => domainMatches(hostname, s.domain))?.domain ?? null;
 }
 
 /**
@@ -60,7 +58,7 @@ async function flushVisit(hostname) {
 }
 
 /**
- * Blocks a site: resets session, records blockedAt, schedules alarm, redirects.
+ * Blocks a site: resets session, records blockedAt, redirects.
  * @param {string} hostname
  * @param {number} tabId
  * @param {string} originalUrl
@@ -68,39 +66,16 @@ async function flushVisit(hostname) {
  */
 async function blockSite(hostname, tabId, originalUrl) {
   await saveState(hostname, { sessionUsed: 0, visitStart: null, blockedAt: Date.now() });
-  await scheduleUnblockAlarm(hostname);
   await redirectTabToBlockPage(tabId, hostname, originalUrl);
 }
 
 /**
- * Clears a block: resets state and cancels the alarm.
+ * Clears a block: resets state.
  * @param {string} hostname
  * @returns {Promise<void>}
  */
 async function clearBlock(hostname) {
   await saveState(hostname, { sessionUsed: 0, visitStart: null, blockedAt: null });
-  await api.alarms.clear(ALARM_PREFIX + hostname);
-}
-
-/**
- * Schedules the unblock alarm for hostname.
- * @param {string} hostname
- * @returns {Promise<void>}
- */
-async function scheduleUnblockAlarm(hostname) {
-  const config = await getConfig();
-  const limits = getEffectiveLimits(hostname, config);
-  await api.alarms.create(ALARM_PREFIX + hostname, { delayInMinutes: limits.minaway });
-}
-
-/**
- * Resets session without setting blockedAt (override flow).
- * @param {string} hostname
- * @returns {Promise<void>}
- */
-async function handleOverride(hostname) {
-  await saveState(hostname, { sessionUsed: 0, visitStart: null, blockedAt: null });
-  await api.alarms.clear(ALARM_PREFIX + hostname);
 }
 
 // ---------------------------------------------------------------------------
@@ -120,12 +95,16 @@ async function handleNavigation(tabId, newUrl) {
   const previousUrl = tabUrls.get(tabId) ?? null;
   tabUrls.set(tabId, newUrl);
 
+  const config = await getConfig();
+
   // Flush previous visit
   if (previousUrl !== null) {
     const prevHostname = extractHostname(previousUrl);
-    const prevConfig = await getConfig();
-    if (prevHostname && isTracked(prevHostname, prevConfig)) {
-      await flushVisit(prevHostname);
+    if (prevHostname) {
+      const prevConfigDomain = getConfigDomain(prevHostname, config);
+      if (prevConfigDomain) {
+        await flushVisit(prevConfigDomain);
+      }
     }
   }
 
@@ -135,36 +114,36 @@ async function handleNavigation(tabId, newUrl) {
   const newHostname = extractHostname(newUrl);
   if (!newHostname) { return; }
 
-  const config = await getConfig();
-  if (!isTracked(newHostname, config)) { return; }
+  const configDomain = getConfigDomain(newHostname, config);
+  if (!configDomain) { return; }
 
-  const state = await getState(newHostname);
-  const limits = getEffectiveLimits(newHostname, config);
+  const state = await getState(configDomain);
+  const limits = getEffectiveLimits(configDomain, config);
 
   // Check if currently blocked
   if (state.blockedAt !== null) {
     const elapsed = Date.now() - state.blockedAt;
     if (elapsed >= limits.minaway * 60000) {
-      await clearBlock(newHostname);
+      await clearBlock(configDomain);
+      // Mirror what clearBlock wrote so we can continue without re-reading storage.
+      state.sessionUsed = 0;
+      state.visitStart = null;
+      state.blockedAt = null;
     } else {
-      await redirectTabToBlockPage(tabId, newHostname, newUrl);
+      await redirectTabToBlockPage(tabId, configDomain, newUrl);
       return;
     }
   }
 
-  // Re-read state after potential clearBlock
-  const freshState = await getState(newHostname);
-  const freshLimits = getEffectiveLimits(newHostname, config);
-
   // Check if session exhausted
-  if (freshState.sessionUsed >= freshLimits.maxvisit * 60000) {
-    await blockSite(newHostname, tabId, newUrl);
+  if (state.sessionUsed >= limits.maxvisit * 60000) {
+    await blockSite(configDomain, tabId, newUrl);
     return;
   }
 
   // Allow — record visit start
-  freshState.visitStart = Date.now();
-  await saveState(newHostname, freshState);
+  state.visitStart = Date.now();
+  await saveState(configDomain, state);
 }
 
 // ---------------------------------------------------------------------------
@@ -176,23 +155,27 @@ async function handleNavigation(tabId, newUrl) {
  * @returns {Promise<void>}
  */
 async function reconcileStateOnStartup() {
-  const domains = await getAllStateDomains();
-  const config = await getConfig();
-  for (const domain of domains) {
+  const [domains, config] = await Promise.all([getAllStateDomains(), getConfig()]);
+  await Promise.all(domains.map(async (domain) => {
     const state = await getState(domain);
+    const limits = getEffectiveLimits(domain, config);
 
     if (state.visitStart !== null) {
-      await flushVisit(domain);
+      // Cap elapsed time at maxvisit to prevent service-worker restarts (common on
+      // Android) from flushing hours of wall-clock time as fake visit time.
+      const elapsed = Math.min(Date.now() - state.visitStart, limits.maxvisit * 60000);
+      state.sessionUsed += elapsed;
+      state.visitStart = null;
+      await saveState(domain, state);
     }
 
     if (state.blockedAt !== null) {
-      const limits = getEffectiveLimits(domain, config);
       const elapsed = Date.now() - state.blockedAt;
       if (elapsed >= limits.minaway * 60000) {
         await clearBlock(domain);
       }
     }
-  }
+  }));
 }
 
 // ---------------------------------------------------------------------------
@@ -210,17 +193,16 @@ function onMessage(message, _sender, sendResponse) {
   const handle = async () => {
     switch (message.type) {
     case 'getBlockStatus': {
-      const state = await getState(message.domain);
-      const config = await getConfig();
+      const [state, config] = await Promise.all([getState(message.domain), getConfig()]);
       const limits = getEffectiveLimits(message.domain, config);
       return { blockedAt: state.blockedAt, minaway: limits.minaway };
     }
     case 'override': {
-      await handleOverride(message.domain);
+      await clearBlock(message.domain);
       return { ok: true };
     }
     case 'getConfig': {
-      return await getConfig();
+      return getConfig();
     }
     case 'saveConfig': {
       await saveConfig(message.config);
@@ -239,24 +221,21 @@ function onMessage(message, _sender, sendResponse) {
       cfg.sites = cfg.sites.filter(s => s.domain !== message.domain);
       await saveConfig(cfg);
       await clearState(message.domain);
-      await api.alarms.clear(ALARM_PREFIX + message.domain);
       return { ok: true };
     }
     case 'getAllStatus': {
       const allConfig = await getConfig();
-      const results = [];
-      for (const site of allConfig.sites) {
-        const st = await getState(site.domain);
+      const states = await Promise.all(allConfig.sites.map(s => getState(s.domain)));
+      return allConfig.sites.map((site, i) => {
         const lim = getEffectiveLimits(site.domain, allConfig);
-        results.push({
+        return {
           domain: site.domain,
-          sessionUsed: st.sessionUsed,
-          blockedAt: st.blockedAt,
+          sessionUsed: states[i].sessionUsed,
+          blockedAt: states[i].blockedAt,
           maxvisit: lim.maxvisit,
           minaway: lim.minaway,
-        });
-      }
-      return results;
+        };
+      });
     }
     default:
       return { error: 'unknown message type' };
@@ -291,29 +270,16 @@ api.tabs.onRemoved.addListener((tabId) => {
   const hostname = extractHostname(url);
   if (!hostname) { return; }
   getConfig().then(config => {
-    if (isTracked(hostname, config)) {
-      return flushVisit(hostname);
+    const configDomain = getConfigDomain(hostname, config);
+    if (configDomain) {
+      return flushVisit(configDomain);
     }
   }).catch(err => {
     console.error('Tab close flush error:', err);
   });
 });
 
-api.alarms.onAlarm.addListener((alarm) => {
-  if (!alarm.name.startsWith(ALARM_PREFIX)) { return; }
-  const hostname = alarm.name.slice(ALARM_PREFIX.length);
-  clearBlock(hostname).catch(err => {
-    console.error('Alarm handler error:', err);
-  });
-});
-
 api.runtime.onMessage.addListener(onMessage);
-
-api.runtime.onInstalled.addListener(() => {
-  reconcileStateOnStartup().catch(err => {
-    console.error('Startup reconcile error:', err);
-  });
-});
 
 reconcileStateOnStartup().catch(err => {
   console.error('Startup reconcile error:', err);
