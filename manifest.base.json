@@ -4,8 +4,7 @@
   "version": "1.2.2",
   "description": "Limit time on distracting websites.",
   "permissions": ["storage", "webNavigation", "activeTab"],
-  "host_permissions": ["<all_urls>"],
-  "icons": {
+"icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
