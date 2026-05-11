@@ -28,11 +28,17 @@ Subdomain matching is hierarchical: adding `youtube.com` covers `www.youtube.com
 `music.youtube.com`, and any other subdomain, with a shared time budget. Adding
 `www.youtube.com` specifically tracks only that subdomain and leaves others unaffected.
 
+Install
+-------
+
+- [Chrome Web Store](https://chromewebstore.google.com/detail/gdhkkiefjifcbbkkbabeohefccacpabn)
+- [Firefox Add-ons](https://addons.mozilla.org/en-US/firefox/addon/noprocrast/)
+
 Browser support
 ---------------
 
   Chrome   120+   (MV3, service worker)
-  Firefox  128+   (MV3, background scripts)
+  Firefox  140+   (MV3, service worker)
 
 The extension source is identical across browsers. A build step generates a browser-specific `manifest.json` from `manifest.base.json`, which is the shared source of truth.
 
@@ -87,9 +93,13 @@ popup/
   popup.*                 Status view with quick add-site
 options/
   options.*               Settings page
+icons/
+  icon16.png
+  icon48.png
+  icon128.png
 ```
 
 License
 -------
 
-See LICENSE.
+See [LICENSE](LICENSE).
