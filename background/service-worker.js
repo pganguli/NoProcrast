@@ -92,65 +92,65 @@ async function reconcileStateOnStartup() {
  */
 async function handleMessage(message) {
   switch (message.type) {
-    case 'getBlockStatus': {
-      const [state, config] = await Promise.all([getState(message.domain), getConfig()]);
-      const limits = getEffectiveLimits(message.domain, config);
-      if (state.sessionStart === null) {
-        return { blockedAt: null, minaway: limits.minaway };
-      }
-      const elapsed = Date.now() - state.sessionStart;
-      const maxMs = limits.maxvisit * 60000;
-      if (elapsed < maxMs || elapsed >= maxMs + limits.minaway * 60000) {
-        return { blockedAt: null, minaway: limits.minaway };
-      }
-      return { blockedAt: state.sessionStart + maxMs, minaway: limits.minaway };
+  case 'getBlockStatus': {
+    const [state, config] = await Promise.all([getState(message.domain), getConfig()]);
+    const limits = getEffectiveLimits(message.domain, config);
+    if (state.sessionStart === null) {
+      return { blockedAt: null, minaway: limits.minaway };
     }
-    case 'override':
-      await saveState(message.domain, { sessionStart: Date.now() });
-      return { ok: true };
-    case 'getConfig':
-      return getConfig();
-    case 'saveConfig':
-      await saveConfig(message.config);
-      return { ok: true };
-    case 'addSite': {
-      const cfg = await getConfig();
-      if (!cfg.sites.some(s => s.domain === message.domain)) {
-        cfg.sites.push({ domain: message.domain });
-        await saveConfig(cfg);
-      }
-      return { ok: true };
+    const elapsed = Date.now() - state.sessionStart;
+    const maxMs = limits.maxvisit * 60000;
+    if (elapsed < maxMs || elapsed >= maxMs + limits.minaway * 60000) {
+      return { blockedAt: null, minaway: limits.minaway };
     }
-    case 'removeSite': {
-      const cfg = await getConfig();
-      cfg.sites = cfg.sites.filter(s => s.domain !== message.domain);
+    return { blockedAt: state.sessionStart + maxMs, minaway: limits.minaway };
+  }
+  case 'override':
+    await saveState(message.domain, { sessionStart: Date.now() });
+    return { ok: true };
+  case 'getConfig':
+    return getConfig();
+  case 'saveConfig':
+    await saveConfig(message.config);
+    return { ok: true };
+  case 'addSite': {
+    const cfg = await getConfig();
+    if (!cfg.sites.some(s => s.domain === message.domain)) {
+      cfg.sites.push({ domain: message.domain });
       await saveConfig(cfg);
-      await clearState(message.domain);
-      return { ok: true };
     }
-    case 'getAllStatus': {
-      const allConfig = await getConfig();
-      const now = Date.now();
-      const states = await Promise.all(allConfig.sites.map(s => getState(s.domain)));
-      return allConfig.sites.map((site, i) => {
-        const lim = getEffectiveLimits(site.domain, allConfig);
-        const { sessionStart } = states[i];
-        const maxMs = lim.maxvisit * 60000;
-        if (sessionStart === null) {
-          return { domain: site.domain, blockedAt: null, sessionUsed: 0, maxvisit: lim.maxvisit, minaway: lim.minaway };
-        }
-        const elapsed = now - sessionStart;
-        if (elapsed < maxMs) {
-          return { domain: site.domain, blockedAt: null, sessionUsed: elapsed, maxvisit: lim.maxvisit, minaway: lim.minaway };
-        }
-        if (elapsed >= maxMs + lim.minaway * 60000) {
-          return { domain: site.domain, blockedAt: null, sessionUsed: 0, maxvisit: lim.maxvisit, minaway: lim.minaway };
-        }
-        return { domain: site.domain, blockedAt: sessionStart + maxMs, sessionUsed: maxMs, maxvisit: lim.maxvisit, minaway: lim.minaway };
-      });
-    }
-    default:
-      return { error: 'unknown message type' };
+    return { ok: true };
+  }
+  case 'removeSite': {
+    const cfg = await getConfig();
+    cfg.sites = cfg.sites.filter(s => s.domain !== message.domain);
+    await saveConfig(cfg);
+    await clearState(message.domain);
+    return { ok: true };
+  }
+  case 'getAllStatus': {
+    const allConfig = await getConfig();
+    const now = Date.now();
+    const states = await Promise.all(allConfig.sites.map(s => getState(s.domain)));
+    return allConfig.sites.map((site, i) => {
+      const lim = getEffectiveLimits(site.domain, allConfig);
+      const { sessionStart } = states[i];
+      const maxMs = lim.maxvisit * 60000;
+      if (sessionStart === null) {
+        return { domain: site.domain, blockedAt: null, sessionUsed: 0, maxvisit: lim.maxvisit, minaway: lim.minaway };
+      }
+      const elapsed = now - sessionStart;
+      if (elapsed < maxMs) {
+        return { domain: site.domain, blockedAt: null, sessionUsed: elapsed, maxvisit: lim.maxvisit, minaway: lim.minaway };
+      }
+      if (elapsed >= maxMs + lim.minaway * 60000) {
+        return { domain: site.domain, blockedAt: null, sessionUsed: 0, maxvisit: lim.maxvisit, minaway: lim.minaway };
+      }
+      return { domain: site.domain, blockedAt: sessionStart + maxMs, sessionUsed: maxMs, maxvisit: lim.maxvisit, minaway: lim.minaway };
+    });
+  }
+  default:
+    return { error: 'unknown message type' };
   }
 }
 
