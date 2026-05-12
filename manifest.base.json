@@ -1,17 +1,25 @@
 {
   "manifest_version": 3,
-  "name": "Noprocrast",
-  "version": "1.3.0",
+  "name": "NoProcrast",
+  "version": "1.3.1",
   "description": "Limit time on distracting websites.",
-  "permissions": ["storage", "webNavigation", "activeTab"],
-"icons": {
+  "permissions": [
+    "storage",
+    "webNavigation",
+    "activeTab"
+  ],
+  "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },
   "action": {
     "default_popup": "popup/popup.html",
-    "default_icon": { "16": "icons/icon16.png", "48": "icons/icon48.png", "128": "icons/icon128.png" }
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
   },
   "options_page": "options/options.html",
   "content_security_policy": {
@@ -22,7 +30,9 @@
       "id": "NoProcrast@pganguli.github.io",
       "strict_min_version": "140.0",
       "data_collection_permissions": {
-        "required": ["none"]
+        "required": [
+          "none"
+        ]
       }
     },
     "gecko_android": {
