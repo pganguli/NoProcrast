@@ -36,12 +36,13 @@ async function handleNavigation(tabId, url) {
   const limits = getEffectiveLimits(configDomain, config);
   const now = Date.now();
 
-  if (state.sessionStart === null) {
-    await saveState(configDomain, { sessionStart: now });
-    return;
+  let { sessionStart } = state;
+  if (sessionStart === null) {
+    sessionStart = now;
+    await saveState(configDomain, { sessionStart });
   }
 
-  const elapsed = now - state.sessionStart;
+  const elapsed = now - sessionStart;
   const maxMs = limits.maxvisit * 60000;
   const cooldownMs = limits.minaway * 60000;
 

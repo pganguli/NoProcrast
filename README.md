@@ -10,11 +10,13 @@ How it works
 
 Time is measured using a wall-clock session window, not accumulated active-tab time:
 
-- The first navigation to a tracked domain starts a session window and records the current time.
-- Every subsequent navigation to that domain checks how much wall-clock time has elapsed since the window started.
+- The first navigation to a tracked domain starts a session window and immediately checks whether access is allowed (same rules as any other navigation).
+- Every navigation to that domain checks how much wall-clock time has elapsed since the window started.
 - If less than `maxvisit` minutes have elapsed, access is allowed with no state change.
 - If `maxvisit` minutes have elapsed but the `minaway` cooldown has not yet passed, the tab is redirected to the block page.
 - Once the full `maxvisit + minaway` period has elapsed since the session started, the next visit automatically starts a fresh window.
+
+Setting `maxvisit` to `0` with any positive `minaway` effectively blocks the site indefinitely: the session window expires immediately on the first visit, and access is never granted until the cooldown elapses — which itself starts a new zero-length window, blocking again right away.
 
 The block page shows how many minutes remain in the cooldown. If you return to an open blocked tab after the cooldown has expired, the page detects this and redirects you back to the site automatically.
 
