@@ -85,7 +85,7 @@ api.runtime.sendMessage({ type: 'getAllStatus' }).then((statuses) => {
       statusEl.textContent = 'Blocked — ' + remainingMin + 'm remaining';
       statusEl.classList.add('blocked');
     } else if (entry.sessionUsed > 0) {
-      const usedMin = Math.ceil(entry.sessionUsed / 60000);
+      const usedMin = Math.floor(entry.sessionUsed / 60000);
       const allowedMin = entry.maxvisit;
       statusEl.textContent = usedMin + 'm used / ' + allowedMin + 'm allowed';
       statusEl.classList.add('active');

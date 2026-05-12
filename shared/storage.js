@@ -6,13 +6,12 @@ const DEFAULT_CONFIG = {
 };
 
 const DEFAULT_STATE = {
-  sessionUsed: 0,
-  visitStart: null,
-  blockedAt: null,
+  sessionStart: null,
 };
 
 /**
- * Validates that a config object has the correct shape; returns true if valid.
+ * Guards against malformed data in storage (e.g. after a schema migration or
+ * manual edit). Returns true only if all required fields are present and typed.
  * @param {unknown} config
  * @returns {boolean}
  */
@@ -28,7 +27,8 @@ function isValidConfig(config) {
 }
 
 /**
- * Validates that a state object has the correct shape; returns true if valid.
+ * Guards against malformed per-domain state in storage. sessionStart must be
+ * either null (no active session) or a Unix-millisecond timestamp.
  * @param {unknown} state
  * @returns {boolean}
  */
@@ -36,34 +36,23 @@ function isValidState(state) {
   return (
     state !== null &&
     typeof state === 'object' &&
-    typeof state.sessionUsed === 'number' &&
-    (state.visitStart === null || typeof state.visitStart === 'number') &&
-    (state.blockedAt === null || typeof state.blockedAt === 'number')
+    (state.sessionStart === null || typeof state.sessionStart === 'number')
   );
 }
 
 /**
- * Reads the config from storage, initialising any missing fields from defaults.
- * @returns {Promise<object>}
+ * Reads the extension config from storage.local. Falls back to DEFAULT_CONFIG
+ * if the stored value is missing or fails validation.
+ * @returns {Promise<{ global: { maxvisit: number, minaway: number }, sites: Array }>}
  */
 export async function getConfig() {
-  const result = await api.storage.local.get('config');
-  const raw = result.config;
-  if (!isValidConfig(raw)) {
-    return structuredClone(DEFAULT_CONFIG);
-  }
-  return {
-    global: {
-      maxvisit: typeof raw.global.maxvisit === 'number' ? raw.global.maxvisit : DEFAULT_CONFIG.global.maxvisit,
-      minaway: typeof raw.global.minaway === 'number' ? raw.global.minaway : DEFAULT_CONFIG.global.minaway,
-    },
-    sites: raw.sites,
-  };
+  const { config } = await api.storage.local.get('config');
+  return isValidConfig(config) ? config : structuredClone(DEFAULT_CONFIG);
 }
 
 /**
- * Saves the config object to storage.
- * @param {object} config
+ * Persists the full config object to storage.local, overwriting the previous value.
+ * @param {{ global: { maxvisit: number, minaway: number }, sites: Array }} config
  * @returns {Promise<void>}
  */
 export async function saveConfig(config) {
@@ -71,43 +60,40 @@ export async function saveConfig(config) {
 }
 
 /**
- * Reads per-domain state from storage.
- * @param {string} domain
- * @returns {Promise<object>}
+ * Reads per-domain session state from storage.local (key: "state:<domain>").
+ * Falls back to DEFAULT_STATE if missing or invalid.
+ * @param {string} domain - The canonical config domain (e.g. "reddit.com").
+ * @returns {Promise<{ sessionStart: number|null }>}
  */
 export async function getState(domain) {
   const key = 'state:' + domain;
   const result = await api.storage.local.get(key);
-  const raw = result[key];
-  if (!isValidState(raw)) {
-    return structuredClone(DEFAULT_STATE);
-  }
-  return raw;
+  return isValidState(result[key]) ? result[key] : structuredClone(DEFAULT_STATE);
 }
 
 /**
- * Saves per-domain state to storage.
- * @param {string} domain
- * @param {object} state
+ * Writes per-domain session state to storage.local (key: "state:<domain>").
+ * @param {string} domain - The canonical config domain (e.g. "reddit.com").
+ * @param {{ sessionStart: number|null }} state
  * @returns {Promise<void>}
  */
 export async function saveState(domain, state) {
-  const key = 'state:' + domain;
-  await api.storage.local.set({ [key]: state });
+  await api.storage.local.set({ ['state:' + domain]: state });
 }
 
 /**
- * Removes per-domain state from storage.
+ * Removes per-domain session state from storage.local. Called when a site is
+ * removed from the block list so no stale state lingers.
  * @param {string} domain
  * @returns {Promise<void>}
  */
 export async function clearState(domain) {
-  const key = 'state:' + domain;
-  await api.storage.local.remove(key);
+  await api.storage.local.remove('state:' + domain);
 }
 
 /**
- * Returns all domain keys that have stored state.
+ * Returns all domains that currently have stored state, by scanning storage.local
+ * for keys with the "state:" prefix. Used at startup to reconcile stale sessions.
  * @returns {Promise<string[]>}
  */
 export async function getAllStateDomains() {

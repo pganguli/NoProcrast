@@ -12,10 +12,11 @@ const newDomainInput = document.getElementById('new-domain');
 const addBtn = document.getElementById('add-btn');
 const domainError = document.getElementById('domain-error');
 
-// ---------------------------------------------------------------------------
-// Load config
-// ---------------------------------------------------------------------------
-
+/**
+ * Fetches config from the service worker, populates the global-defaults inputs,
+ * and renders the site list. Called once on page load.
+ * @returns {Promise<void>}
+ */
 async function loadConfig() {
   currentConfig = await api.runtime.sendMessage({ type: 'getConfig' });
   globalMaxvisitInput.value = currentConfig.global.maxvisit;
@@ -23,20 +24,40 @@ async function loadConfig() {
   renderSites();
 }
 
-// ---------------------------------------------------------------------------
-// Render site rows
-// ---------------------------------------------------------------------------
-
+/**
+ * Re-renders the entire site table from currentConfig.sites.
+ * Called after any mutation to the sites array.
+ */
 function renderSites() {
-  while (sitesTbody.firstChild) {
-    sitesTbody.removeChild(sitesTbody.firstChild);
-  }
-  for (const site of currentConfig.sites) {
-    sitesTbody.appendChild(buildSiteRow(site));
-  }
+  sitesTbody.replaceChildren(...currentConfig.sites.map(buildSiteRow));
 }
 
 /**
+ * Creates a number input for a per-site override field (maxvisit or minaway).
+ * Empty value means "inherit global default" and is stored as undefined.
+ * Clamps the minimum to 1 to match the global-defaults constraint.
+ * @param {number|undefined} value - Current override; undefined renders as placeholder.
+ * @param {function(number|undefined): void} onChange - Receives the parsed value on blur.
+ * @returns {HTMLInputElement}
+ */
+function buildNumberInput(value, onChange) {
+  const input = document.createElement('input');
+  input.type = 'number';
+  input.min = '1';
+  input.placeholder = 'default';
+  if (value !== undefined) { input.value = String(value); }
+  input.addEventListener('blur', () => {
+    const val = input.value.trim();
+    onChange(val === '' ? undefined : Math.max(1, parseInt(val, 10)));
+    saveConfig();
+  });
+  return input;
+}
+
+/**
+ * Builds a table row for one entry in the site list. Edits to the maxvisit and
+ * minaway inputs mutate the site object in-place (currentConfig.sites is an
+ * array of references) and then persist via saveConfig.
  * @param {{ domain: string, maxvisit?: number, minaway?: number }} site
  * @returns {HTMLTableRowElement}
  */
@@ -45,37 +66,13 @@ function buildSiteRow(site) {
 
   const tdDomain = document.createElement('td');
   tdDomain.textContent = site.domain;
-  tr.appendChild(tdDomain);
 
   const tdMaxvisit = document.createElement('td');
-  const maxvisitInput = document.createElement('input');
-  maxvisitInput.type = 'number';
-  maxvisitInput.min = '1';
-  maxvisitInput.placeholder = 'default';
-  if (site.maxvisit !== undefined) { maxvisitInput.value = String(site.maxvisit); }
-  maxvisitInput.addEventListener('blur', () => {
-    const val = maxvisitInput.value.trim();
-    site.maxvisit = val === '' ? undefined : Math.max(1, parseInt(val, 10));
-    saveConfig();
-  });
-  tdMaxvisit.appendChild(maxvisitInput);
-  tr.appendChild(tdMaxvisit);
+  tdMaxvisit.appendChild(buildNumberInput(site.maxvisit, v => { site.maxvisit = v; }));
 
   const tdMinaway = document.createElement('td');
-  const minawayInput = document.createElement('input');
-  minawayInput.type = 'number';
-  minawayInput.min = '1';
-  minawayInput.placeholder = 'default';
-  if (site.minaway !== undefined) { minawayInput.value = String(site.minaway); }
-  minawayInput.addEventListener('blur', () => {
-    const val = minawayInput.value.trim();
-    site.minaway = val === '' ? undefined : Math.max(1, parseInt(val, 10));
-    saveConfig();
-  });
-  tdMinaway.appendChild(minawayInput);
-  tr.appendChild(tdMinaway);
+  tdMinaway.appendChild(buildNumberInput(site.minaway, v => { site.minaway = v; }));
 
-  const tdRemove = document.createElement('td');
   const removeBtn = document.createElement('button');
   removeBtn.className = 'remove-btn';
   removeBtn.textContent = 'Remove';
@@ -83,67 +80,48 @@ function buildSiteRow(site) {
     api.runtime.sendMessage({ type: 'removeSite', domain: site.domain }).then(() => {
       currentConfig.sites = currentConfig.sites.filter(s => s.domain !== site.domain);
       renderSites();
-    }).catch(err => {
-      console.error('Remove site failed:', err);
-    });
+    }).catch(err => { console.error('Remove site failed:', err); });
   });
-  tdRemove.appendChild(removeBtn);
-  tr.appendChild(tdRemove);
 
+  const tdRemove = document.createElement('td');
+  tdRemove.appendChild(removeBtn);
+
+  tr.append(tdDomain, tdMaxvisit, tdMinaway, tdRemove);
   return tr;
 }
 
-// ---------------------------------------------------------------------------
-// Save config
-// ---------------------------------------------------------------------------
-
+/**
+ * Sends the current in-memory config to the service worker for persistence.
+ * Shows a brief "Saved ✓" confirmation on success.
+ */
 function saveConfig() {
   api.runtime.sendMessage({ type: 'saveConfig', config: currentConfig }).then(() => {
-    savedMsg.textContent = 'Saved \u2713';
+    savedMsg.textContent = 'Saved ✓';
     setTimeout(() => { savedMsg.textContent = ''; }, 2000);
-  }).catch(err => {
-    console.error('Save config failed:', err);
-  });
+  }).catch(err => { console.error('Save config failed:', err); });
 }
-
-// ---------------------------------------------------------------------------
-// Global defaults — save on blur
-// ---------------------------------------------------------------------------
 
 globalMaxvisitInput.addEventListener('blur', () => {
   const val = parseInt(globalMaxvisitInput.value, 10);
-  if (!isNaN(val) && val >= 1) {
-    currentConfig.global.maxvisit = val;
-    saveConfig();
-  }
+  if (!isNaN(val) && val >= 1) { currentConfig.global.maxvisit = val; saveConfig(); }
 });
 
 globalMinawayInput.addEventListener('blur', () => {
   const val = parseInt(globalMinawayInput.value, 10);
-  if (!isNaN(val) && val >= 1) {
-    currentConfig.global.minaway = val;
-    saveConfig();
-  }
+  if (!isNaN(val) && val >= 1) { currentConfig.global.minaway = val; saveConfig(); }
 });
-
-// ---------------------------------------------------------------------------
-// Add site
-// ---------------------------------------------------------------------------
 
 addBtn.addEventListener('click', () => {
   const domain = newDomainInput.value.trim().toLowerCase();
   domainError.textContent = '';
-
   if (!DOMAIN_REGEX.test(domain)) {
     domainError.textContent = 'Invalid domain name.';
     return;
   }
-
   if (currentConfig.sites.some(s => s.domain === domain)) {
     domainError.textContent = 'Domain already in list.';
     return;
   }
-
   currentConfig.sites.push({ domain });
   newDomainInput.value = '';
   saveConfig();
@@ -154,10 +132,4 @@ newDomainInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') { addBtn.click(); }
 });
 
-// ---------------------------------------------------------------------------
-// Init
-// ---------------------------------------------------------------------------
-
-loadConfig().catch(err => {
-  console.error('Failed to load config:', err);
-});
+loadConfig().catch(err => { console.error('Failed to load config:', err); });
