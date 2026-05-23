@@ -14,7 +14,11 @@ const domainError = document.getElementById('domain-error');
 
 // Unlock gate
 const unlockCode = String(1000 + Math.floor(Math.random() * 9000));
-document.getElementById('unlock-label').innerHTML = 'Type <strong>' + unlockCode + '</strong> to edit settings:';
+const unlockLabel = document.getElementById('unlock-label');
+unlockLabel.textContent = 'Type ';
+const unlockStrong = document.createElement('strong');
+unlockStrong.textContent = unlockCode;
+unlockLabel.append(unlockStrong, ' to edit settings:');
 const unlockInput = document.getElementById('unlock-input');
 const unlockError = document.getElementById('unlock-error');
 
