@@ -69,6 +69,13 @@ justifyInput.addEventListener('input', () => {
   startCountdownBtn.disabled = justifyInput.value.trim().length === 0;
 });
 
+justifyInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey && justifyInput.value.trim().length > 0) {
+    e.preventDefault();
+    startCountdownBtn.click();
+  }
+});
+
 startCountdownBtn.addEventListener('click', () => {
   justifySection.classList.add('hidden');
   countdownSection.classList.remove('hidden');
