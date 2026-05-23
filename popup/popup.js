@@ -82,13 +82,11 @@ api.runtime.sendMessage({ type: 'getAllStatus' }).then((statuses) => {
     if (entry.blockedAt !== null) {
       const remainingMs = (entry.minaway * 60000) - (Date.now() - entry.blockedAt);
       const remainingMin = Math.max(0, Math.ceil(remainingMs / 60000));
-      statusEl.textContent = 'Blocked — ' + remainingMin + 'm remaining';
-      statusEl.classList.add('blocked');
+      statusEl.textContent = 'Blocked for ' + remainingMin + 'm';
     } else if (entry.sessionUsed > 0) {
       const usedMin = Math.floor(entry.sessionUsed / 60000);
       const allowedMin = entry.maxvisit;
-      statusEl.textContent = usedMin + 'm used / ' + allowedMin + 'm allowed';
-      statusEl.classList.add('active');
+      statusEl.textContent = usedMin + 'm / ' + allowedMin + 'm used';
     } else {
       statusEl.textContent = 'Idle';
     }

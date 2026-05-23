@@ -4,14 +4,7 @@ const params = new URLSearchParams(location.search);
 const domain = params.get('domain') ?? '';
 const rawReturnTo = params.get('returnTo') ?? '';
 
-/**
- * Validates the returnTo URL to prevent open-redirect abuse. Only http and https
- * schemes are accepted; anything else (e.g. javascript:, data:) falls back to
- * the domain root so the user still ends up somewhere safe after an override.
- * @param {string} url
- * @param {string} fallbackDomain
- * @returns {string}
- */
+// Only http/https are safe redirect targets; anything else (e.g. javascript:) falls back to the domain root.
 function safeReturnTo(url, fallbackDomain) {
   try {
     const parsed = new URL(url);
@@ -26,22 +19,15 @@ const returnTo = safeReturnTo(rawReturnTo, domain);
 
 document.getElementById('domain-display').textContent = domain;
 
-/**
- * Asks the service worker for the current block status and redirects to returnTo
- * if the cooldown has already elapsed (e.g. the user left this tab open while
- * the window expired). Returns the remaining milliseconds if still blocked, or
- * undefined if a redirect was initiated.
- * @returns {Promise<number|undefined>}
- */
 async function checkBlockStatus() {
   const response = await api.runtime.sendMessage({ type: 'getBlockStatus', domain });
   if (!response || response.blockedAt === null) {
-    location.href = returnTo;
+    location.replace(returnTo);
     return;
   }
   const remainingMs = (response.minaway * 60000) - (Date.now() - response.blockedAt);
   if (remainingMs <= 0) {
-    location.href = returnTo;
+    location.replace(returnTo);
     return;
   }
   return remainingMs;
@@ -57,38 +43,67 @@ checkBlockStatus().then(remainingMs => {
   document.getElementById('remaining-display').textContent = 'Could not load status.';
 });
 
-// When the user returns to this tab, re-check in case the cooldown elapsed while away.
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState !== 'visible') { return; }
   checkBlockStatus().catch(err => { console.error('Visibility check failed:', err); });
 });
 
 const OVERRIDE_DELAY = 30;
+
 const overrideBtn = document.getElementById('override-btn');
-overrideBtn.textContent = 'Override — I really need this';
-let confirmed = false;
+const justifySection = document.getElementById('justify-section');
+const justifyInput = document.getElementById('justify-input');
+const startCountdownBtn = document.getElementById('start-countdown-btn');
+const countdownSection = document.getElementById('countdown-section');
+const countdownText = document.getElementById('countdown-text');
+const pauseNotice = document.getElementById('pause-notice');
 
 overrideBtn.addEventListener('click', () => {
-  if (confirmed) {
-    api.runtime.sendMessage({ type: 'override', domain }).then(() => {
-      location.href = returnTo;
-    }).catch(err => { console.error('Override failed:', err); });
-    return;
+  overrideBtn.disabled = true;
+  overrideBtn.setAttribute('aria-expanded', 'true');
+  justifySection.classList.remove('hidden');
+  justifyInput.focus();
+});
+
+justifyInput.addEventListener('input', () => {
+  startCountdownBtn.disabled = justifyInput.value.trim().length === 0;
+});
+
+startCountdownBtn.addEventListener('click', () => {
+  justifySection.classList.add('hidden');
+  countdownSection.classList.remove('hidden');
+  runCountdown();
+});
+
+function runCountdown() {
+  let remaining = OVERRIDE_DELAY;
+  let active = true;
+
+  function setActive(on) {
+    active = on;
+    pauseNotice.classList.toggle('hidden', on);
   }
 
-  overrideBtn.disabled = true;
-  let remaining = OVERRIDE_DELAY;
-  overrideBtn.textContent = 'Hold on… ' + remaining + 's';
+  countdownText.textContent = 'Hold on… ' + remaining + 's';
 
-  const countdown = setInterval(() => {
+  const interval = setInterval(() => {
+    if (!active) { return; }
     remaining -= 1;
+    countdownText.textContent = 'Hold on… ' + remaining + 's';
     if (remaining <= 0) {
-      clearInterval(countdown);
-      confirmed = true;
-      overrideBtn.disabled = false;
-      overrideBtn.textContent = 'Click again to confirm override';
-    } else {
-      overrideBtn.textContent = 'Hold on… ' + remaining + 's';
+      clearInterval(interval);
+      window.removeEventListener('blur', checkFocus);
+      window.removeEventListener('focus', checkFocus);
+      document.removeEventListener('visibilitychange', checkFocus);
+      api.runtime.sendMessage({ type: 'override', domain }).then(() => {
+        location.replace(returnTo);
+      }).catch(err => { console.error('Override failed:', err); });
     }
   }, 1000);
-});
+
+  function checkFocus() { setActive(document.visibilityState === 'visible' && document.hasFocus()); }
+
+  window.addEventListener('blur', checkFocus);
+  window.addEventListener('focus', checkFocus);
+  document.addEventListener('visibilitychange', checkFocus);
+}

@@ -12,8 +12,17 @@
   <main>
     <h1>Time's up</h1>
     <p id="domain-display"></p>
-    <p id="remaining-display"></p>
-    <button id="override-btn" class="override-btn">Override — I really need this</button>
+    <p id="remaining-display" aria-live="polite"></p>
+    <button id="override-btn" class="override-btn" aria-expanded="false" aria-controls="justify-section">Override — I really need this</button>
+    <div id="justify-section" class="justify-section hidden">
+      <label for="justify-input" class="justify-label">Why do you need this right now?</label>
+      <textarea id="justify-input" class="justify-input" rows="3" placeholder="Type a reason to start the countdown…"></textarea>
+      <button id="start-countdown-btn" class="override-btn start-btn" disabled>Start 30s countdown</button>
+    </div>
+    <div id="countdown-section" class="countdown-section hidden" aria-live="polite">
+      <p id="countdown-text" class="countdown-text">Hold on… 30s</p>
+      <p id="pause-notice" class="pause-notice hidden">Paused — come back to this tab</p>
+    </div>
   </main>
   <script type="module" src="blocked.js"></script>
 </body>

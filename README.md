@@ -20,6 +20,13 @@ Setting `maxvisit` to `0` with any positive `minaway` effectively blocks the sit
 
 The block page shows how many minutes remain in the cooldown. If you return to an open blocked tab after the cooldown has expired, the page detects this and redirects you back to the site automatically.
 
+**Override flow** — a manual override requires two deliberate steps:
+
+1. **Justify** — click "Override" to reveal a text field: *"Why do you need this right now?"* You must type something before proceeding. The text is discarded immediately; its only purpose is to engage conscious thought before the countdown begins.
+2. **Wait** — a 30-second countdown starts. It only advances while the block page is the active, focused tab. Switching away or alt-tabbing pauses it. Once 30 continuous seconds elapse, the override is granted, and you are redirected automatically.
+
+**Settings lock** — the settings page requires entering a randomly generated 4-digit PIN before any limits or site list can be edited. The PIN changes each time the settings page is opened, preventing muscle-memory bypass. Adding new sites does not require the PIN.
+
 All timing is checked at navigation boundaries — no background polling, no content scripts.
 
 Configuration

@@ -12,15 +12,49 @@ body {
   color: #222;
 }
 
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
 h1 {
-  font-size: 1.5rem;
+  font-size: 1.3rem;
+  margin-bottom: 0.75rem;
+}
+
+.unlock-section {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   margin-bottom: 1.5rem;
 }
 
+.unlock-label {
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.unlock-input {
+  width: 4rem;
+  padding: 0.25rem 0.4rem;
+  border: 1px solid #ccc;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.unlock-error {
+  font-size: 0.85rem;
+  color: #555;
+}
+
 h2 {
-  font-size: 1.1rem;
+  font-size: 1rem;
   margin-bottom: 0.75rem;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid #ddd;
   padding-bottom: 0.4rem;
 }
 
@@ -44,13 +78,12 @@ section {
   width: 80px;
   padding: 0.3rem 0.5rem;
   border: 1px solid #ccc;
-  border-radius: 4px;
   font-size: 0.95rem;
 }
 
 .saved-msg {
   font-size: 0.85rem;
-  color: #27ae60;
+  color: #888;
   margin-left: 0.5rem;
 }
 
@@ -71,28 +104,33 @@ th {
 
 td {
   padding: 0.4rem 0.5rem;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid #eee;
 }
 
 td input[type="number"] {
   width: 70px;
   padding: 0.25rem 0.4rem;
   border: 1px solid #ccc;
-  border-radius: 4px;
   font-size: 0.9rem;
 }
 
 .remove-btn {
   background: none;
   border: none;
-  color: #c0392b;
+  color: #888;
   cursor: pointer;
   font-size: 0.85rem;
   padding: 0.2rem 0.4rem;
 }
 
 .remove-btn:hover {
+  color: #222;
   text-decoration: underline;
+}
+
+body.locked .remove-btn:hover {
+  color: #888;
+  text-decoration: none;
 }
 
 .add-row {
@@ -105,26 +143,24 @@ td input[type="number"] {
 #new-domain {
   padding: 0.3rem 0.6rem;
   border: 1px solid #ccc;
-  border-radius: 4px;
   font-size: 0.9rem;
   width: 220px;
 }
 
 #add-btn {
   padding: 0.3rem 0.8rem;
-  background: #2980b9;
-  color: #fff;
-  border: none;
-  border-radius: 4px;
+  background: none;
+  color: #222;
+  border: 1px solid #ccc;
   cursor: pointer;
   font-size: 0.9rem;
 }
 
 #add-btn:hover {
-  background: #2471a3;
+  border-color: #888;
 }
 
 .error-msg {
-  color: #c0392b;
+  color: #555;
   font-size: 0.85rem;
 }

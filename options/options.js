@@ -12,11 +12,39 @@ const newDomainInput = document.getElementById('new-domain');
 const addBtn = document.getElementById('add-btn');
 const domainError = document.getElementById('domain-error');
 
-/**
- * Fetches config from the service worker, populates the global-defaults inputs,
- * and renders the site list. Called once on page load.
- * @returns {Promise<void>}
- */
+// Unlock gate
+const unlockCode = String(1000 + Math.floor(Math.random() * 9000));
+document.getElementById('unlock-label').innerHTML = 'Type <strong>' + unlockCode + '</strong> to edit settings:';
+const unlockInput = document.getElementById('unlock-input');
+const unlockError = document.getElementById('unlock-error');
+
+let isLocked = true;
+
+function setLocked(locked) {
+  isLocked = locked;
+  for (const el of document.querySelectorAll('input, button')) {
+    if (el === unlockInput || el.id === 'new-domain' || el.id === 'add-btn') { continue; }
+    el.disabled = locked;
+  }
+  document.body.classList.toggle('locked', locked);
+  if (!locked) {
+    document.getElementById('unlock-section').style.display = 'none';
+    globalMaxvisitInput.focus();
+  }
+}
+
+setLocked(true);
+
+unlockInput.addEventListener('input', () => {
+  if (unlockInput.value === unlockCode) {
+    unlockError.textContent = '';
+    setLocked(false);
+  } else if (unlockInput.value.length === 4) {
+    unlockError.textContent = 'Incorrect.';
+    unlockInput.value = '';
+  }
+});
+
 async function loadConfig() {
   currentConfig = await api.runtime.sendMessage({ type: 'getConfig' });
   globalMaxvisitInput.value = currentConfig.global.maxvisit;
@@ -24,27 +52,17 @@ async function loadConfig() {
   renderSites();
 }
 
-/**
- * Re-renders the entire site table from currentConfig.sites.
- * Called after any mutation to the sites array.
- */
 function renderSites() {
   sitesTbody.replaceChildren(...currentConfig.sites.map(buildSiteRow));
+  setLocked(isLocked);
 }
 
-/**
- * Creates a number input for a per-site override field (maxvisit or minaway).
- * Empty value means "inherit global default" and is stored as undefined.
- * Clamps the minimum to 1 to match the global-defaults constraint.
- * @param {number|undefined} value - Current override; undefined renders as placeholder.
- * @param {function(number|undefined): void} onChange - Receives the parsed value on blur.
- * @returns {HTMLInputElement}
- */
-function buildNumberInput(value, onChange) {
+function buildNumberInput(value, label, onChange) {
   const input = document.createElement('input');
   input.type = 'number';
   input.min = '1';
   input.placeholder = 'default';
+  input.setAttribute('aria-label', label);
   if (value !== undefined) { input.value = String(value); }
   input.addEventListener('blur', () => {
     const val = input.value.trim();
@@ -54,13 +72,6 @@ function buildNumberInput(value, onChange) {
   return input;
 }
 
-/**
- * Builds a table row for one entry in the site list. Edits to the maxvisit and
- * minaway inputs mutate the site object in-place (currentConfig.sites is an
- * array of references) and then persist via saveConfig.
- * @param {{ domain: string, maxvisit?: number, minaway?: number }} site
- * @returns {HTMLTableRowElement}
- */
 function buildSiteRow(site) {
   const tr = document.createElement('tr');
 
@@ -68,14 +79,15 @@ function buildSiteRow(site) {
   tdDomain.textContent = site.domain;
 
   const tdMaxvisit = document.createElement('td');
-  tdMaxvisit.appendChild(buildNumberInput(site.maxvisit, v => { site.maxvisit = v; }));
+  tdMaxvisit.appendChild(buildNumberInput(site.maxvisit, 'Max visit for ' + site.domain, v => { site.maxvisit = v; }));
 
   const tdMinaway = document.createElement('td');
-  tdMinaway.appendChild(buildNumberInput(site.minaway, v => { site.minaway = v; }));
+  tdMinaway.appendChild(buildNumberInput(site.minaway, 'Min away for ' + site.domain, v => { site.minaway = v; }));
 
   const removeBtn = document.createElement('button');
   removeBtn.className = 'remove-btn';
   removeBtn.textContent = 'Remove';
+  removeBtn.setAttribute('aria-label', 'Remove ' + site.domain);
   removeBtn.addEventListener('click', () => {
     api.runtime.sendMessage({ type: 'removeSite', domain: site.domain }).then(() => {
       currentConfig.sites = currentConfig.sites.filter(s => s.domain !== site.domain);
@@ -90,10 +102,6 @@ function buildSiteRow(site) {
   return tr;
 }
 
-/**
- * Sends the current in-memory config to the service worker for persistence.
- * Shows a brief "Saved ✓" confirmation on success.
- */
 function saveConfig() {
   api.runtime.sendMessage({ type: 'saveConfig', config: currentConfig }).then(() => {
     savedMsg.textContent = 'Saved ✓';
