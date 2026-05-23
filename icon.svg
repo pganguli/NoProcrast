@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Clock face -->
+  <circle cx="64" cy="64" r="56" fill="#f5f5f5" stroke="#1a237e" stroke-width="9"/>
+  <!-- Hour hand (3 o'clock, 90°) -->
+  <line x1="64" y1="64" x2="92" y2="64" stroke="#1a237e" stroke-width="6" stroke-linecap="round"/>
+  <!-- Minute hand (12 o'clock, straight up) -->
+  <line x1="64" y1="64" x2="64" y2="22" stroke="#1a237e" stroke-width="4" stroke-linecap="round"/>
+  <!-- Center cap -->
+  <circle cx="64" cy="64" r="4" fill="#1a237e"/>
+  <!-- Red X clipped to circle edge (endpoints at r=56, 45°) -->
+  <line x1="24" y1="24" x2="104" y2="104" stroke="#fff" stroke-width="19" stroke-linecap="round"/>
+  <line x1="104" y1="24" x2="24" y2="104" stroke="#fff" stroke-width="19" stroke-linecap="round"/>
+  <line x1="24" y1="24" x2="104" y2="104" stroke="#e53935" stroke-width="13" stroke-linecap="round"/>
+  <line x1="104" y1="24" x2="24" y2="104" stroke="#e53935" stroke-width="13" stroke-linecap="round"/>
+</svg>
