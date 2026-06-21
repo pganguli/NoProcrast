@@ -6,6 +6,7 @@ let currentConfig = null;
 
 const globalMaxvisitInput = document.getElementById('global-maxvisit');
 const globalMinawayInput = document.getElementById('global-minaway');
+const globalBypassTimeoutInput = document.getElementById('global-bypass-timeout');
 const savedMsg = document.getElementById('saved-msg');
 const sitesTbody = document.getElementById('sites-tbody');
 const newDomainInput = document.getElementById('new-domain');
@@ -16,6 +17,7 @@ async function loadConfig() {
   currentConfig = await api.runtime.sendMessage({ type: 'getConfig' });
   globalMaxvisitInput.value = currentConfig.global.maxvisit;
   globalMinawayInput.value = currentConfig.global.minaway;
+  globalBypassTimeoutInput.value = currentConfig.global.bypassTimeout;
   renderSites();
 }
 
@@ -83,6 +85,11 @@ globalMaxvisitInput.addEventListener('blur', () => {
 globalMinawayInput.addEventListener('blur', () => {
   const val = parseInt(globalMinawayInput.value, 10);
   if (!isNaN(val) && val >= 1) { currentConfig.global.minaway = val; saveConfig(); }
+});
+
+globalBypassTimeoutInput.addEventListener('blur', () => {
+  const val = parseInt(globalBypassTimeoutInput.value, 10);
+  if (!isNaN(val) && val >= 1) { currentConfig.global.bypassTimeout = val; saveConfig(); }
 });
 
 addBtn.addEventListener('click', () => {

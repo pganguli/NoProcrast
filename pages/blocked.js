@@ -48,8 +48,6 @@ document.addEventListener('visibilitychange', () => {
   checkBlockStatus().catch(err => { console.error('Visibility check failed:', err); });
 });
 
-const OVERRIDE_DELAY = 30;
-
 const overrideBtn = document.getElementById('override-btn');
 const justifySection = document.getElementById('justify-section');
 const justifyInput = document.getElementById('justify-input');
@@ -57,6 +55,13 @@ const startCountdownBtn = document.getElementById('start-countdown-btn');
 const countdownSection = document.getElementById('countdown-section');
 const countdownText = document.getElementById('countdown-text');
 const pauseNotice = document.getElementById('pause-notice');
+
+let overrideDelay = 60;
+
+api.runtime.sendMessage({ type: 'getConfig' }).then(config => {
+  overrideDelay = config?.global?.bypassTimeout ?? 60;
+  startCountdownBtn.textContent = 'Start ' + overrideDelay + 's countdown';
+}).catch(() => {});
 
 overrideBtn.addEventListener('click', () => {
   overrideBtn.disabled = true;
@@ -83,7 +88,7 @@ startCountdownBtn.addEventListener('click', () => {
 });
 
 function runCountdown() {
-  let remaining = OVERRIDE_DELAY;
+  let remaining = overrideDelay;
   let active = true;
 
   function setActive(on) {

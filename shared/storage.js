@@ -1,7 +1,7 @@
 import api from './browser-api.js';
 
 const DEFAULT_CONFIG = {
-  global: { maxvisit: 20, minaway: 180 },
+  global: { maxvisit: 20, minaway: 180, bypassTimeout: 60 },
   sites: [],
 };
 
@@ -22,6 +22,7 @@ function isValidConfig(config) {
     typeof config.global === 'object' &&
     typeof config.global.maxvisit === 'number' &&
     typeof config.global.minaway === 'number' &&
+    typeof config.global.bypassTimeout === 'number' &&
     Array.isArray(config.sites)
   );
 }
