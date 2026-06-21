@@ -26,31 +26,6 @@ h1 {
   margin-bottom: 0.75rem;
 }
 
-.unlock-section {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
-}
-
-.unlock-label {
-  font-size: 0.9rem;
-  color: #555;
-}
-
-.unlock-input {
-  width: 4rem;
-  padding: 0.25rem 0.4rem;
-  border: 1px solid #ccc;
-  font-size: 0.9rem;
-  text-align: center;
-}
-
-.unlock-error {
-  font-size: 0.85rem;
-  color: #555;
-}
-
 h2 {
   font-size: 1rem;
   margin-bottom: 0.75rem;
@@ -126,11 +101,6 @@ td input[type="number"] {
 .remove-btn:hover {
   color: #222;
   text-decoration: underline;
-}
-
-body.locked .remove-btn:hover {
-  color: #888;
-  text-decoration: none;
 }
 
 .add-row {

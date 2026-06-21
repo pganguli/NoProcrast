@@ -12,43 +12,6 @@ const newDomainInput = document.getElementById('new-domain');
 const addBtn = document.getElementById('add-btn');
 const domainError = document.getElementById('domain-error');
 
-// Unlock gate
-const unlockCode = String(1000 + Math.floor(Math.random() * 9000));
-const unlockLabel = document.getElementById('unlock-label');
-unlockLabel.textContent = 'Type ';
-const unlockStrong = document.createElement('strong');
-unlockStrong.textContent = unlockCode;
-unlockLabel.append(unlockStrong, ' to edit settings:');
-const unlockInput = document.getElementById('unlock-input');
-const unlockError = document.getElementById('unlock-error');
-
-let isLocked = true;
-
-function setLocked(locked) {
-  isLocked = locked;
-  for (const el of document.querySelectorAll('input, button')) {
-    if (el === unlockInput || el.id === 'new-domain' || el.id === 'add-btn') { continue; }
-    el.disabled = locked;
-  }
-  document.body.classList.toggle('locked', locked);
-  if (!locked) {
-    document.getElementById('unlock-section').style.display = 'none';
-    globalMaxvisitInput.focus();
-  }
-}
-
-setLocked(true);
-
-unlockInput.addEventListener('input', () => {
-  if (unlockInput.value === unlockCode) {
-    unlockError.textContent = '';
-    setLocked(false);
-  } else if (unlockInput.value.length === 4) {
-    unlockError.textContent = 'Incorrect.';
-    unlockInput.value = '';
-  }
-});
-
 async function loadConfig() {
   currentConfig = await api.runtime.sendMessage({ type: 'getConfig' });
   globalMaxvisitInput.value = currentConfig.global.maxvisit;
@@ -58,7 +21,6 @@ async function loadConfig() {
 
 function renderSites() {
   sitesTbody.replaceChildren(...currentConfig.sites.map(buildSiteRow));
-  setLocked(isLocked);
 }
 
 function buildNumberInput(value, label, onChange) {
