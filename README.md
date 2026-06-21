@@ -23,9 +23,7 @@ The block page shows how many minutes remain in the cooldown. If you return to a
 **Override flow** — a manual override requires two deliberate steps:
 
 1. **Justify** — click "Override" to reveal a text field: *"Why do you need this right now?"* You must type something before proceeding. The text is discarded immediately; its only purpose is to engage conscious thought before the countdown begins.
-2. **Wait** — a 30-second countdown starts. It only advances while the block page is the active, focused tab. Switching away or alt-tabbing pauses it. Once 30 continuous seconds elapse, the override is granted, and you are redirected automatically.
-
-**Settings lock** — the settings page requires entering a randomly generated 4-digit PIN before any limits or site list can be edited. The PIN changes each time the settings page is opened, preventing muscle-memory bypass. Adding new sites does not require the PIN.
+2. **Wait** — a countdown starts (default 60 seconds, configurable in Settings). It only advances while the block page is the active, focused tab. Switching away or alt-tabbing pauses it. Once the full countdown elapses, the override is granted, and you are redirected automatically.
 
 All timing is checked at navigation boundaries — no background polling, no content scripts.
 
@@ -34,8 +32,9 @@ Configuration
 
 Global defaults (configurable in Settings):
 
-  `maxvisit =  20 minutes`
-  `minaway  = 180 minutes`
+  `maxvisit       =  20 minutes`
+  `minaway        = 180 minutes`
+  `bypassTimeout  =  60 seconds`
 
 Per-site overrides for `maxvisit` and/or `minaway` can be set from the Settings page.
 
@@ -101,7 +100,7 @@ scripts/
 shared/
   browser-api.js          Unified api export (only file referencing chrome/browser)
   storage.js              Storage read/write helpers
-  domain.js               domainMatches(), extractHostname(), getConfigDomain()
+  domain.js               DOMAIN_REGEX, domainMatches(), extractHostname(), getConfigDomain()
   limits.js               getEffectiveLimits()
   navigation.js           isExtensionPage(), redirectTabToBlockPage()
 background/
