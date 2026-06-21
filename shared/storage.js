@@ -22,7 +22,6 @@ function isValidConfig(config) {
     typeof config.global === 'object' &&
     typeof config.global.maxvisit === 'number' &&
     typeof config.global.minaway === 'number' &&
-    typeof config.global.bypassTimeout === 'number' &&
     Array.isArray(config.sites)
   );
 }
@@ -48,7 +47,9 @@ function isValidState(state) {
  */
 export async function getConfig() {
   const { config } = await api.storage.local.get('config');
-  return isValidConfig(config) ? config : structuredClone(DEFAULT_CONFIG);
+  const base = isValidConfig(config) ? config : structuredClone(DEFAULT_CONFIG);
+  // Merge global defaults so fields added in later versions don't invalidate old configs.
+  return { ...base, global: { ...DEFAULT_CONFIG.global, ...base.global } };
 }
 
 /**

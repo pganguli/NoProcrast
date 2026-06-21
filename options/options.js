@@ -1,6 +1,5 @@
 import api from '../shared/browser-api.js';
-
-const DOMAIN_REGEX = /^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/i;
+import { DOMAIN_REGEX } from '../shared/domain.js';
 
 let currentConfig = null;
 

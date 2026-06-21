@@ -1,3 +1,5 @@
+export const DOMAIN_REGEX = /^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/i;
+
 /**
  * Extracts the hostname from a URL string using the URL API.
  * Returns an empty string for non-parseable URLs (e.g. "about:blank", "chrome://").
