@@ -70,12 +70,17 @@ overrideBtn.addEventListener('click', () => {
   justifyInput.focus();
 });
 
+function isValidJustification(text) {
+  const trimmed = text.trim();
+  return trimmed.length >= 3 && new Set(trimmed).size >= 2;
+}
+
 justifyInput.addEventListener('input', () => {
-  startCountdownBtn.disabled = justifyInput.value.trim().length === 0;
+  startCountdownBtn.disabled = !isValidJustification(justifyInput.value);
 });
 
 justifyInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && !e.shiftKey && justifyInput.value.trim().length > 0) {
+  if (e.key === 'Enter' && !e.shiftKey && isValidJustification(justifyInput.value)) {
     e.preventDefault();
     startCountdownBtn.click();
   }
