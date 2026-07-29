@@ -1,6 +1,6 @@
 import api from '../shared/browser-api.js';
 import { getConfig, saveConfig, getState, saveState, clearState, getAllStateDomains } from '../shared/storage.js';
-import { extractHostname, getConfigDomain } from '../shared/domain.js';
+import { extractHostname, getConfigDomain, findOverlappingDomain } from '../shared/domain.js';
 import { getEffectiveLimits } from '../shared/limits.js';
 import { isExtensionPage, redirectTabToBlockPage } from '../shared/navigation.js';
 
@@ -80,11 +80,14 @@ async function reconcileStateOnStartup() {
  * Returns a plain object that is forwarded back to the caller as the response.
  *
  * Supported message types:
- *   getBlockStatus  { domain }         → { blockedAt: number|null, minaway: number }
- *   override        { domain }         → { ok: true }  (grants a fresh maxvisit window)
+ *   getBlockStatus  { domain }         → { blockedAt: number|null, minaway: number, bypassTimeout, overrideDisabled, overrideDisabledReason }
+ *   override        { domain }         → { ok: true } | { ok: false, error }
+ *                   (grants a fresh maxvisit window; rejected outright if the site's effective
+ *                    maxvisit or bypassTimeout is 0 — either means no access can be granted)
  *   getConfig       —                  → config object
  *   saveConfig      { config }         → { ok: true }
- *   addSite         { domain }         → { ok: true }  (no-op if already present)
+ *   addSite         { domain, maxvisit?, minaway?, bypassTimeout? } → { ok: true } | { ok: false, error }
+ *                   (rejects if domain overlaps an existing entry, either direction)
  *   removeSite      { domain }         → { ok: true }  (also clears state)
  *   getAllStatus     —                  → Array<{ domain, blockedAt, sessionUsed, maxvisit, minaway }>
  *
@@ -96,19 +99,41 @@ async function handleMessage(message) {
   case 'getBlockStatus': {
     const [state, config] = await Promise.all([getState(message.domain), getConfig()]);
     const limits = getEffectiveLimits(message.domain, config);
+    const now = Date.now();
+    const overrideInfo = {
+      bypassTimeout: limits.bypassTimeout,
+      // maxvisit=0 blocks indefinitely by design, and bypassTimeout=0 is the explicit
+      // "no overrides allowed" setting — either way there's nothing an override can grant.
+      // The two are distinguished so the block page can explain which one applies.
+      overrideDisabled: limits.maxvisit === 0 || limits.bypassTimeout === 0,
+      overrideDisabledReason: limits.maxvisit === 0
+        ? 'This site is configured to block indefinitely — override is unavailable.'
+        : limits.bypassTimeout === 0
+          ? 'Overrides are disabled for this site.'
+          : null,
+    };
     if (state.sessionStart === null) {
-      return { blockedAt: null, minaway: limits.minaway };
+      return { blockedAt: null, minaway: limits.minaway, ...overrideInfo };
     }
-    const elapsed = Date.now() - state.sessionStart;
+    const elapsed = now - state.sessionStart;
     const maxMs = limits.maxvisit * 60000;
     if (elapsed < maxMs || elapsed >= maxMs + limits.minaway * 60000) {
-      return { blockedAt: null, minaway: limits.minaway };
+      return { blockedAt: null, minaway: limits.minaway, ...overrideInfo };
     }
-    return { blockedAt: state.sessionStart + maxMs, minaway: limits.minaway };
+    return { blockedAt: state.sessionStart + maxMs, minaway: limits.minaway, ...overrideInfo };
   }
-  case 'override':
+  case 'override': {
+    const config = await getConfig();
+    const limits = getEffectiveLimits(message.domain, config);
+    if (limits.maxvisit === 0) {
+      return { ok: false, error: 'This site is configured to block indefinitely — override cannot grant access.' };
+    }
+    if (limits.bypassTimeout === 0) {
+      return { ok: false, error: 'Overrides are disabled for this site.' };
+    }
     await saveState(message.domain, { sessionStart: Date.now() });
     return { ok: true };
+  }
   case 'getConfig':
     return getConfig();
   case 'saveConfig':
@@ -116,10 +141,16 @@ async function handleMessage(message) {
     return { ok: true };
   case 'addSite': {
     const cfg = await getConfig();
-    if (!cfg.sites.some(s => s.domain === message.domain)) {
-      cfg.sites.push({ domain: message.domain });
-      await saveConfig(cfg);
+    const overlap = findOverlappingDomain(message.domain, cfg.sites.map(s => s.domain));
+    if (overlap) {
+      return { ok: false, error: 'Overlaps with existing entry "' + overlap + '"' };
     }
+    const site = { domain: message.domain };
+    if (typeof message.maxvisit === 'number') { site.maxvisit = message.maxvisit; }
+    if (typeof message.minaway === 'number') { site.minaway = message.minaway; }
+    if (typeof message.bypassTimeout === 'number') { site.bypassTimeout = message.bypassTimeout; }
+    cfg.sites.push(site);
+    await saveConfig(cfg);
     return { ok: true };
   }
   case 'removeSite': {

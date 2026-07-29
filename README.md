@@ -36,7 +36,9 @@ Global defaults (configurable in Settings):
   `minaway        = 180 minutes`
   `bypassTimeout  =  60 seconds`
 
-Per-site overrides for `maxvisit` and/or `minaway` can be set from the Settings page.
+Per-site overrides for `maxvisit`, `minaway`, and/or `bypassTimeout` can be set from the Settings page.
+Setting `bypassTimeout` to `0` (globally or for a specific site) disables the override entirely — the
+Override button is unavailable, with no countdown to wait out.
 
 Subdomain matching is hierarchical: adding `youtube.com` covers `www.youtube.com`,
 `music.youtube.com`, and any other subdomain, with a shared time budget. Adding

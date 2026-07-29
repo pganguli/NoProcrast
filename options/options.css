@@ -1,36 +1,25 @@
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
 body {
-  font-family: system-ui, sans-serif;
   max-width: 640px;
   margin: 2rem auto;
-  padding: 0 1rem;
-  color: #222;
+  padding: 0 var(--gap-md);
 }
 
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
+@media (max-width: 480px) {
+  body {
+    margin: var(--gap-md) auto;
+  }
 }
 
 h1 {
   font-size: 1.3rem;
-  margin-bottom: 0.75rem;
+  margin-bottom: var(--gap-md);
 }
 
 h2 {
   font-size: 1rem;
-  margin-bottom: 0.75rem;
-  border-bottom: 1px solid #ddd;
-  padding-bottom: 0.4rem;
+  margin-bottom: var(--gap-md);
+  color: var(--fg-muted);
+  font-weight: 600;
 }
 
 section {
@@ -40,97 +29,153 @@ section {
 .field-row {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  flex-wrap: wrap;
+  gap: var(--gap-xs) var(--gap-sm);
   margin-bottom: 0.6rem;
 }
 
 .field-row label {
-  width: 180px;
-  font-size: 0.95rem;
+  width: 140px;
+  max-width: 100%;
+  flex-shrink: 0;
+  font-size: var(--font-md);
 }
 
 .field-row input {
   width: 80px;
-  padding: 0.3rem 0.5rem;
-  border: 1px solid #ccc;
-  font-size: 0.95rem;
+}
+
+.value-group {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-xs);
+}
+
+.unit {
+  font-size: var(--font-sm);
+  color: var(--fg-muted);
+}
+
+.field-hint {
+  font-size: var(--font-sm);
+  color: var(--fg-muted);
+}
+
+.field-error {
+  font-size: var(--font-sm);
+  color: #b3261e;
+  min-height: 1em;
 }
 
 .saved-msg {
-  font-size: 0.85rem;
-  color: #888;
-  margin-left: 0.5rem;
+  font-size: var(--font-sm);
+  color: var(--fg-muted);
+  margin-left: var(--gap-sm);
 }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.9rem;
-  margin-bottom: 0.75rem;
+.site-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--gap-xs) var(--gap-sm);
+  padding: var(--gap-sm) 0;
+  border-bottom: 1px solid #f0f0f0;
 }
 
-th {
-  text-align: left;
-  padding: 0.4rem 0.5rem;
-  border-bottom: 1px solid #ddd;
-  color: #555;
-  font-weight: 600;
+.site-row .site-domain {
+  flex: 0 1 auto;
+  width: 140px;
+  max-width: 100%;
+  font-size: var(--font-md);
+  overflow-wrap: anywhere;
 }
 
-td {
-  padding: 0.4rem 0.5rem;
-  border-bottom: 1px solid #eee;
+.site-row .site-summary {
+  display: flex;
+  flex: 1 1 auto;
+  font-variant-numeric: tabular-nums;
 }
 
-td input[type="number"] {
-  width: 70px;
-  padding: 0.25rem 0.4rem;
-  border: 1px solid #ccc;
-  font-size: 0.9rem;
+.site-row .summary-field {
+  flex-shrink: 0;
+  white-space: nowrap;
+  color: var(--fg-muted);
+  font-size: var(--font-sm);
+}
+
+.site-row .summary-field:nth-child(1) { width: 75px; }
+.site-row .summary-field:nth-child(2) { width: 75px; }
+.site-row .summary-field:nth-child(3) { width: 95px; }
+
+.site-row .customize-link {
+  font-size: var(--font-sm);
+  color: var(--fg-muted);
+  text-decoration: underline;
+}
+
+.site-row .override-fields {
+  display: flex;
+  flex-direction: column;
+  flex-basis: 100%;
+  gap: var(--gap-xs);
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.18s ease;
+}
+
+.site-row .override-fields.expanded {
+  max-height: 160px;
+  margin-top: var(--gap-xs);
+}
+
+.site-row .field-group {
+  display: flex;
+  align-items: center;
+  gap: var(--gap-xs);
+}
+
+.site-row .field-group label {
+  width: 100px;
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  color: var(--fg-muted);
+}
+
+.site-row .override-fields input {
+  width: 60px;
 }
 
 .remove-btn {
-  background: none;
-  border: none;
-  color: #888;
-  cursor: pointer;
-  font-size: 0.85rem;
-  padding: 0.2rem 0.4rem;
+  color: var(--fg-muted);
+  font-size: 1rem;
+  min-width: 4rem;
+  text-align: center;
 }
 
 .remove-btn:hover {
-  color: #222;
-  text-decoration: underline;
+  color: var(--fg);
 }
 
 .add-row {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: var(--gap-sm);
   flex-wrap: wrap;
+  margin-top: var(--gap-md);
 }
 
 #new-domain {
-  padding: 0.3rem 0.6rem;
-  border: 1px solid #ccc;
-  font-size: 0.9rem;
   width: 220px;
+  max-width: 100%;
+  flex: 1 1 220px;
 }
 
 #add-btn {
-  padding: 0.3rem 0.8rem;
-  background: none;
-  color: #222;
-  border: 1px solid #ccc;
-  cursor: pointer;
-  font-size: 0.9rem;
-}
-
-#add-btn:hover {
-  border-color: #888;
+  color: var(--fg);
+  border-bottom: 1px solid #ccc;
 }
 
 .error-msg {
-  color: #555;
-  font-size: 0.85rem;
+  color: var(--fg-muted);
+  font-size: var(--font-sm);
 }

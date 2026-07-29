@@ -37,3 +37,16 @@ export function domainMatches(hostname, configDomain) {
 export function getConfigDomain(hostname, config) {
   return config.sites.find(s => domainMatches(hostname, s.domain))?.domain ?? null;
 }
+
+/**
+ * Finds an existing domain that overlaps with the given domain in either
+ * direction — i.e. one is the same as, or a subdomain of, the other. Prevents
+ * configuring both "youtube.com" and "www.youtube.com" as separate entries
+ * with independent session state.
+ * @param {string} domain - Candidate domain to check.
+ * @param {string[]} existingDomains - Domains already present in config.
+ * @returns {string|null} The overlapping domain, or null if none.
+ */
+export function findOverlappingDomain(domain, existingDomains) {
+  return existingDomains.find(d => domainMatches(domain, d) || domainMatches(d, domain)) ?? null;
+}

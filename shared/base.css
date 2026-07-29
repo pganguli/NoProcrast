@@ -1,0 +1,107 @@
+/* Shared minimal tokens and primitives used by popup, options, and blocked pages. */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+:root {
+  --fg: #222;
+  --fg-muted: #666;
+  --fg-faint: #aaa;
+  --bg: #fff;
+  --focus-ring: #2563eb;
+  --gap-xs: 0.25rem;
+  --gap-sm: 0.5rem;
+  --gap-md: 1rem;
+  --gap-lg: 1.5rem;
+  --font-sm: 0.85rem;
+  --font-md: 0.95rem;
+}
+
+body {
+  font-family: system-ui, sans-serif;
+  color: var(--fg);
+  background: var(--bg);
+  margin: 0;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+input[type="text"],
+input[type="number"],
+textarea {
+  border: none;
+  border-bottom: 1px solid #ddd;
+  padding: 0.3rem 0.1rem;
+  font-size: var(--font-md);
+  font-family: inherit;
+  color: var(--fg);
+  background: transparent;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+textarea:focus {
+  border-bottom-color: var(--fg-muted);
+}
+
+input[type="text"]:focus-visible,
+input[type="number"]:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+button {
+  background: none;
+  border: none;
+  color: var(--fg-muted);
+  cursor: pointer;
+  font-size: var(--font-sm);
+  font-family: inherit;
+  padding: 0.2rem 0.4rem;
+}
+
+button:hover:not(:disabled) {
+  color: var(--fg);
+}
+
+button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+button:disabled {
+  color: var(--fg-faint);
+  cursor: default;
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* 44px is the standard minimum touch-target size (WCAG 2.5.5 / mobile platform
+     guidelines) — sized via padding around a smaller glyph so it doesn't look bulky. */
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  border-radius: 50%;
+  font-size: 1rem;
+  padding: 0;
+}
+
+.icon-btn:hover:not(:disabled) {
+  background: #f0f0f0;
+}

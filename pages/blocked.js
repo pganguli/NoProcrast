@@ -19,18 +19,41 @@ const returnTo = safeReturnTo(rawReturnTo, domain);
 
 document.getElementById('domain-display').textContent = domain;
 
+const overrideBtn = document.getElementById('override-btn');
+const overrideLimitNotice = document.getElementById('override-limit-notice');
+
+let overrideDelay = 60;
+let overrideFlowStarted = false;
+
 async function checkBlockStatus() {
   const response = await api.runtime.sendMessage({ type: 'getBlockStatus', domain });
   if (!response || response.blockedAt === null) {
     location.replace(returnTo);
     return;
   }
+  applyOverrideInfo(response);
   const remainingMs = (response.minaway * 60000) - (Date.now() - response.blockedAt);
   if (remainingMs <= 0) {
     location.replace(returnTo);
     return;
   }
   return remainingMs;
+}
+
+function applyOverrideInfo(response) {
+  overrideDelay = response.bypassTimeout ?? 60;
+  // Once the user has clicked Override, a periodic status refresh (e.g. triggered by
+  // the same visibilitychange listener that pauses/resumes the countdown) must not
+  // touch the button/notice — doing so previously re-enabled "Override" while the
+  // justify form was still open underneath it.
+  if (overrideFlowStarted) { return; }
+  overrideBtn.disabled = response.overrideDisabled;
+  overrideLimitNotice.classList.toggle('hidden', !response.overrideDisabled);
+  if (response.overrideDisabled) {
+    overrideLimitNotice.textContent = response.overrideDisabledReason ?? 'Override is unavailable for this site.';
+  } else {
+    startCountdownBtn.textContent = 'Start ' + overrideDelay + 's countdown';
+  }
 }
 
 checkBlockStatus().then(remainingMs => {
@@ -48,7 +71,6 @@ document.addEventListener('visibilitychange', () => {
   checkBlockStatus().catch(err => { console.error('Visibility check failed:', err); });
 });
 
-const overrideBtn = document.getElementById('override-btn');
 const justifySection = document.getElementById('justify-section');
 const justifyInput = document.getElementById('justify-input');
 const startCountdownBtn = document.getElementById('start-countdown-btn');
@@ -56,14 +78,8 @@ const countdownSection = document.getElementById('countdown-section');
 const countdownText = document.getElementById('countdown-text');
 const pauseNotice = document.getElementById('pause-notice');
 
-let overrideDelay = 60;
-
-api.runtime.sendMessage({ type: 'getConfig' }).then(config => {
-  overrideDelay = config?.global?.bypassTimeout ?? 60;
-  startCountdownBtn.textContent = 'Start ' + overrideDelay + 's countdown';
-}).catch(() => {});
-
 overrideBtn.addEventListener('click', () => {
+  overrideFlowStarted = true;
   overrideBtn.disabled = true;
   overrideBtn.setAttribute('aria-expanded', 'true');
   justifySection.classList.remove('hidden');
@@ -112,7 +128,17 @@ function runCountdown() {
       window.removeEventListener('blur', checkFocus);
       window.removeEventListener('focus', checkFocus);
       document.removeEventListener('visibilitychange', checkFocus);
-      api.runtime.sendMessage({ type: 'override', domain }).then(() => {
+      api.runtime.sendMessage({ type: 'override', domain }).then((response) => {
+        if (!response.ok) {
+          // Rejected (e.g. a setting changed while the countdown was running) — collapse
+          // back to the idle state and let applyOverrideInfo's notice explain why, rather
+          // than leaving a stale message in the now-irrelevant countdown box. The flow is
+          // over, so allow a fresh status check to update the button/notice again.
+          overrideFlowStarted = false;
+          countdownSection.classList.add('hidden');
+          checkBlockStatus().catch(() => {});
+          return;
+        }
         location.replace(returnTo);
       }).catch(err => { console.error('Override failed:', err); });
     }

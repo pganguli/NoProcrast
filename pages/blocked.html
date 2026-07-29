@@ -5,6 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Site Blocked</title>
+  <link rel="stylesheet" href="../shared/base.css">
   <link rel="stylesheet" href="blocked.css">
 </head>
 
@@ -15,6 +16,7 @@
     <p id="remaining-display" aria-live="polite"></p>
     <button id="override-btn" class="override-btn" aria-expanded="false" aria-controls="justify-section">Override — I
       really need this</button>
+    <p id="override-limit-notice" class="override-limit-notice hidden" aria-live="polite"></p>
     <div id="justify-section" class="justify-section hidden">
       <label for="justify-input" class="justify-label">Why do you need this right now?</label>
       <textarea id="justify-input" class="justify-input" rows="3"

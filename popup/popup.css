@@ -1,22 +1,16 @@
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
+body {
+  min-width: 280px;
 }
 
-body {
-  font-family: system-ui, sans-serif;
-  min-width: 280px;
-  margin: 0;
-  color: #222;
+#settings-btn {
+  font-size: 1.3rem;
 }
 
 header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #ddd;
+  padding: var(--gap-md);
 }
 
 h1 {
@@ -24,76 +18,105 @@ h1 {
   margin: 0;
 }
 
-#settings-btn {
-  background: none;
-  border: 1px solid #ccc;
-  padding: 0.25rem 0.6rem;
-  cursor: pointer;
-  font-size: 0.85rem;
-}
-
 main {
-  padding: 0.5rem 0;
+  padding: 0 var(--gap-md) var(--gap-sm);
 }
 
 #empty-msg {
-  padding: 0.75rem 1rem;
-  color: #888;
-  font-size: 0.9rem;
+  color: var(--fg-muted);
+  font-size: var(--font-md);
   margin: 0;
+  padding: var(--gap-sm) 0;
 }
 
 .site-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.5rem 1rem;
-  border-bottom: 1px solid #eee;
-  font-size: 0.9rem;
+  flex-wrap: wrap;
+  gap: var(--gap-xs) var(--gap-sm);
+  padding: var(--gap-sm) 0;
 }
 
 .site-domain {
   font-weight: 500;
+  font-size: var(--font-md);
+  overflow-wrap: anywhere;
+  min-width: 0;
 }
 
 .site-status {
-  color: #555;
-  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--fg-muted);
+  font-size: var(--font-sm);
 }
 
+.status-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: #bbb;
+  flex-shrink: 0;
+}
+
+.status-dot.idle { background: #bbb; }
+.status-dot.using { background: #e0a92e; }
+.status-dot.blocked { background: #c0392b; }
+
 footer {
-  border-top: 1px solid #ddd;
-  padding: 0.5rem 1rem 0.6rem;
+  padding: var(--gap-sm) var(--gap-md) var(--gap-md);
 }
 
 #add-row {
   display: flex;
-  gap: 0.4rem;
+  gap: var(--gap-sm);
+  align-items: center;
 }
 
 #new-domain {
   flex: 1;
-  border: 1px solid #ccc;
-  padding: 0.3rem 0.5rem;
-  font-size: 0.85rem;
+  min-width: 0;
 }
 
-#add-btn {
-  background: none;
-  color: #222;
-  border: 1px solid #ccc;
-  padding: 0.3rem 0.7rem;
-  cursor: pointer;
-  font-size: 0.85rem;
+#add-customize {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.18s ease;
 }
 
-#add-btn:hover {
-  border-color: #888;
+#add-customize.expanded {
+  max-height: 240px;
+  margin-top: var(--gap-sm);
+}
+
+.add-customize-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--gap-xs) var(--gap-sm);
+  margin-bottom: var(--gap-xs);
+}
+
+.add-customize-row label {
+  font-size: 0.8rem;
+  color: var(--fg-muted);
+  width: 100px;
+}
+
+.add-customize-row input {
+  width: 70px;
+}
+
+.add-customize-row .unit {
+  font-size: 0.8rem;
+  color: var(--fg-muted);
 }
 
 #add-error {
-  color: #555;
+  color: var(--fg-muted);
   font-size: 0.8rem;
-  margin: 0.25rem 0 0;
+  margin: var(--gap-xs) 0 0;
   min-height: 1em;
 }

@@ -5,13 +5,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NoProcrast</title>
+  <link rel="stylesheet" href="../shared/base.css">
   <link rel="stylesheet" href="popup.css">
 </head>
 
 <body>
   <header>
     <h1>NoProcrast</h1>
-    <button id="settings-btn">Settings</button>
+    <button id="settings-btn" class="icon-btn" aria-label="Settings" title="Settings">⚙</button>
   </header>
   <main id="status-list">
     <p id="empty-msg">No sites configured.</p>
@@ -20,7 +21,26 @@
     <div id="add-row">
       <input type="text" id="new-domain" placeholder="example.com" aria-label="Domain to add" autocomplete="off"
         spellcheck="false">
-      <button id="add-btn">Add</button>
+      <button id="customize-toggle" class="icon-btn hidden" aria-label="Set custom limits for this site"
+        title="Set custom limits for this site" aria-expanded="false" aria-controls="add-customize">▾</button>
+      <button id="add-btn" class="hidden">Add</button>
+    </div>
+    <div id="add-customize">
+      <div class="add-customize-row">
+        <label for="add-maxvisit">Max visit<span class="sr-only"> in minutes, 0 blocks indefinitely</span></label>
+        <input type="number" id="add-maxvisit" min="0" placeholder="auto" title="0 blocks this site indefinitely">
+        <span class="unit" aria-hidden="true">min</span>
+      </div>
+      <div class="add-customize-row">
+        <label for="add-minaway">Min away<span class="sr-only"> in minutes</span></label>
+        <input type="number" id="add-minaway" min="1" placeholder="auto">
+        <span class="unit" aria-hidden="true">min</span>
+      </div>
+      <div class="add-customize-row">
+        <label for="add-bypass-timeout">Bypass timeout<span class="sr-only"> in seconds, 0 disables overrides</span></label>
+        <input type="number" id="add-bypass-timeout" min="0" placeholder="auto" title="0 disables overrides">
+        <span class="unit" aria-hidden="true">sec</span>
+      </div>
     </div>
     <p id="add-error" aria-live="polite"></p>
   </footer>

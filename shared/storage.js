@@ -41,15 +41,51 @@ function isValidState(state) {
 }
 
 /**
+ * Clamps global limits to their valid ranges. minaway must be at least 1 (a
+ * zero/negative cooldown breaks the block logic). maxvisit and bypassTimeout
+ * may be 0 (deliberately: 0 maxvisit blocks indefinitely, 0 bypassTimeout
+ * disables overrides for that scope).
+ * @param {object} global
+ * @returns {{ maxvisit: number, minaway: number, bypassTimeout: number }}
+ */
+function clampGlobal(global) {
+  return {
+    maxvisit: Math.max(0, Number(global.maxvisit) || 0),
+    minaway: Math.max(1, Number(global.minaway) || 1),
+    bypassTimeout: Math.max(0, Number(global.bypassTimeout) || 0),
+  };
+}
+
+/**
+ * Clamps a per-site override to the same valid ranges as clampGlobal, leaving
+ * fields that are absent (i.e. inheriting the global default) untouched.
+ * @param {{ domain: string, maxvisit?: number, minaway?: number, bypassTimeout?: number }} site
+ * @returns {{ domain: string, maxvisit?: number, minaway?: number, bypassTimeout?: number }}
+ */
+function clampSite(site) {
+  const clamped = { domain: site.domain };
+  if (site.maxvisit !== undefined) { clamped.maxvisit = Math.max(0, Number(site.maxvisit) || 0); }
+  if (site.minaway !== undefined) { clamped.minaway = Math.max(1, Number(site.minaway) || 1); }
+  if (site.bypassTimeout !== undefined) { clamped.bypassTimeout = Math.max(0, Number(site.bypassTimeout) || 0); }
+  return clamped;
+}
+
+/**
  * Reads the extension config from storage.local. Falls back to DEFAULT_CONFIG
- * if the stored value is missing or fails validation.
+ * if the stored value is missing or fails validation. Numeric fields are
+ * clamped to their valid ranges so a hand-edited or corrupted value (e.g.
+ * minaway: 0) can't silently invert the block-indefinitely behavior.
  * @returns {Promise<{ global: { maxvisit: number, minaway: number }, sites: Array }>}
  */
 export async function getConfig() {
   const { config } = await api.storage.local.get('config');
   const base = isValidConfig(config) ? config : structuredClone(DEFAULT_CONFIG);
   // Merge global defaults so fields added in later versions don't invalidate old configs.
-  return { ...base, global: { ...DEFAULT_CONFIG.global, ...base.global } };
+  return {
+    ...base,
+    global: clampGlobal({ ...DEFAULT_CONFIG.global, ...base.global }),
+    sites: base.sites.map(clampSite),
+  };
 }
 
 /**
@@ -70,7 +106,9 @@ export async function saveConfig(config) {
 export async function getState(domain) {
   const key = 'state:' + domain;
   const result = await api.storage.local.get(key);
-  return isValidState(result[key]) ? result[key] : structuredClone(DEFAULT_STATE);
+  const base = isValidState(result[key]) ? result[key] : structuredClone(DEFAULT_STATE);
+  // Merge defaults so fields added in later versions don't invalidate old state.
+  return { ...DEFAULT_STATE, ...base };
 }
 
 /**

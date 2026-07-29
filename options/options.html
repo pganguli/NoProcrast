@@ -5,6 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NoProcrast Settings</title>
+  <link rel="stylesheet" href="../shared/base.css">
   <link rel="stylesheet" href="options.css">
 </head>
 
@@ -14,33 +15,37 @@
     <section>
       <h2>Global Defaults</h2>
       <div class="field-row">
-        <label for="global-maxvisit">Max visit (minutes)</label>
-        <input type="number" id="global-maxvisit" min="1">
+        <label for="global-maxvisit">Max visit</label>
+        <span class="value-group">
+          <input type="number" id="global-maxvisit" min="0">
+          <span class="unit">min</span>
+        </span>
+        <span class="field-hint">(0 blocks indefinitely)</span>
+        <span id="global-maxvisit-error" class="field-error" aria-live="polite"></span>
       </div>
       <div class="field-row">
-        <label for="global-minaway">Min away (minutes)</label>
-        <input type="number" id="global-minaway" min="1">
+        <label for="global-minaway">Min away</label>
+        <span class="value-group">
+          <input type="number" id="global-minaway" min="1">
+          <span class="unit">min</span>
+        </span>
+        <span id="global-minaway-error" class="field-error" aria-live="polite"></span>
       </div>
       <div class="field-row">
-        <label for="global-bypass-timeout">Bypass timeout (seconds)</label>
-        <input type="number" id="global-bypass-timeout" min="1">
+        <label for="global-bypass-timeout">Bypass timeout</label>
+        <span class="value-group">
+          <input type="number" id="global-bypass-timeout" min="0">
+          <span class="unit">sec</span>
+        </span>
+        <span class="field-hint">(0 disables overrides)</span>
+        <span id="global-bypass-timeout-error" class="field-error" aria-live="polite"></span>
       </div>
       <span id="saved-msg" class="saved-msg" aria-live="polite"></span>
     </section>
 
     <section>
       <h2>Blocked Sites</h2>
-      <table id="sites-table">
-        <thead>
-          <tr>
-            <th scope="col">Domain</th>
-            <th scope="col">Max Visit (min)</th>
-            <th scope="col">Min Away (min)</th>
-            <th scope="col"><span class="sr-only">Actions</span></th>
-          </tr>
-        </thead>
-        <tbody id="sites-tbody"></tbody>
-      </table>
+      <div id="sites-list"></div>
       <div class="add-row">
         <input type="text" id="new-domain" placeholder="example.com" aria-label="Domain to add" autocomplete="off"
           spellcheck="false">

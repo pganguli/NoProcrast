@@ -1,63 +1,56 @@
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
 body {
-  font-family: system-ui, sans-serif;
-  background: #fff;
-  color: #222;
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  margin: 0;
+  overflow-y: auto;
 }
 
 main {
   text-align: center;
   max-width: 480px;
+  width: 100%;
   padding: 2rem;
+}
+
+@media (max-width: 400px) {
+  main {
+    padding: 1.25rem;
+  }
 }
 
 h1 {
   font-size: 1.5rem;
-  margin-bottom: 0.5rem;
+  margin-bottom: var(--gap-sm);
 }
 
 p {
-  margin: 0.5rem 0;
-  color: #555;
+  margin: var(--gap-sm) 0;
+  color: var(--fg-muted);
 }
 
 #domain-display {
   font-weight: bold;
-  color: #222;
-}
-
-.hidden {
-  display: none;
+  color: var(--fg);
+  overflow-wrap: anywhere;
 }
 
 .override-btn {
-  margin-top: 1.5rem;
+  margin-top: var(--gap-lg);
   padding: 0.4rem 1rem;
-  background: none;
-  color: #222;
-  border: 1px solid #aaa;
-  cursor: pointer;
-  font-size: 0.9rem;
+  color: var(--fg);
+  border-bottom: 1px solid var(--fg-muted);
+  font-size: var(--font-md);
 }
 
 .override-btn:hover:not(:disabled) {
-  border-color: #555;
+  border-bottom-color: var(--fg-muted);
 }
 
-.override-btn:disabled {
-  color: #aaa;
-  border-color: #ddd;
-  cursor: default;
+.override-limit-notice {
+  margin-top: var(--gap-sm);
+  font-size: var(--font-sm);
+  color: var(--fg-muted);
 }
 
 .justify-section {
@@ -67,24 +60,9 @@ p {
 
 .justify-label {
   display: block;
-  font-size: 0.9rem;
-  color: #444;
+  font-size: var(--font-md);
+  color: var(--fg-muted);
   margin-bottom: 0.4rem;
-}
-
-.justify-input {
-  width: 100%;
-  padding: 0.5rem 0.6rem;
-  font-size: 0.9rem;
-  font-family: inherit;
-  border: 1px solid #ccc;
-  resize: vertical;
-  color: #222;
-}
-
-.justify-input:focus {
-  outline: none;
-  border-color: #888;
 }
 
 .start-btn {
@@ -98,10 +76,10 @@ p {
 
 .countdown-text {
   font-size: 1rem;
-  color: #222;
+  color: var(--fg);
 }
 
 .pause-notice {
-  font-size: 0.85rem;
-  color: #888;
+  font-size: var(--font-sm);
+  color: var(--fg-muted);
 }
