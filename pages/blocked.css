@@ -36,15 +36,26 @@ p {
 }
 
 .override-btn {
+  display: block;
+  width: 100%;
   margin-top: var(--gap-lg);
-  padding: 0.4rem 1rem;
+  padding: 0.6rem 1rem;
   color: var(--fg);
-  border-bottom: 1px solid var(--fg-muted);
+  background: transparent;
+  border: 1px solid var(--fg);
+  border-radius: 6px;
   font-size: var(--font-md);
+  font-weight: 600;
 }
 
 .override-btn:hover:not(:disabled) {
-  border-bottom-color: var(--fg-muted);
+  background: var(--fg);
+  color: var(--bg);
+}
+
+.override-btn:disabled {
+  color: var(--fg-faint);
+  border-color: var(--fg-faint);
 }
 
 .override-limit-notice {
